@@ -76,6 +76,7 @@ class Modbus(Block):
             if result:
                 signal = Signal(result.__dict__)
                 signal.params = params
+                self._check_exceptions(signal)
                 return signal
         except ModbusIOException:
             if not retry:
@@ -107,3 +108,31 @@ class Modbus(Block):
         except:
             self._logger.warning('Failed to prepare function params',
                                  exc_info=True)
+
+    def _check_exceptions(self, signal):
+        ''' Add exception details if the response has an exception code '''
+        code = getattr(signal, 'exception_code', None)
+        desc = None
+        if code and isinstance(code, int):
+            if code == 1:
+                desc = 'Function code received in the query is not recognized or allowed by slave'
+            elif code == 2:
+                desc = 'Data address of some or all the required entities are not allowed or do not exist in slave'
+            elif code == 3:
+                desc = 'Value is not accepted by slave'
+            elif code == 4:
+                desc = 'Unrecoverable error occurred while slave was attempting to perform requested action'
+            elif code == 5:
+                desc = 'Slave has accepted request and is processing it, but a long duration of time is required. This response is returned to prevent a timeout error from occurring in the master. Master can next issue a Poll Program Complete message to determine if processing is completed'
+            elif code == 6:
+                desc = 'Slave is engaged in processing a long-duration command. Master should retry later'
+            elif code == 7:
+                desc = 'Slave cannot perform the programming functions. Master should request diagnostic or error information from slave'
+            elif code == 8:
+                desc = 'Slave detected a parity error in memory. Master can retry the request, but service may be required on the slave device'
+            elif code == 10:
+                desc = 'Specialized for Modbus gateways. Indicates a misconfigured gateway'
+            elif code == 11:
+                desc = 'Specialized for Modbus gateways. Sent when slave fails to respond'
+        if desc:
+            signal.exception_details = desc

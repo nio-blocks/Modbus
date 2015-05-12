@@ -39,4 +39,5 @@ Notifies a signal for each frame read from Modbus. Attributes on signals include
     - values (optional): Values on multiple write.
   - bits (optional): List of boolean values when reading coils or discrete inputs.
   - registers (optional): List of int values when reading registers.
-  - exception_code (optional): Error code when function call is invalid.
+  - exception_code (int, optional): Error code when function call is invalid.
+  - exception_details (str, optional): Error details when function call is invalid.
