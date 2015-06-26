@@ -6,7 +6,7 @@ from nio.common.signal.base import Signal
 from nio.common.discovery import Discoverable, DiscoverableType
 from nio.metadata.properties import StringProperty, IntProperty, \
     ExpressionProperty, VersionProperty, SelectProperty, PropertyHolder
-from nio.modules.threading import spawn, Event
+from nio.modules.threading import spawn, Event, Lock
 
 
 class FunctionName(Enum):
@@ -42,6 +42,7 @@ class Modbus(Block):
     def __init__(self):
         super().__init__()
         self._client = None
+        self._execute_lock = Lock()
 
     def configure(self, context):
         super().configure(context)
@@ -72,7 +73,12 @@ class Modbus(Block):
 
     def _execute(self, modbus_function, params, retry=False):
         try:
-            result = getattr(self._client, modbus_function)(**params)
+            with self._execute_lock:
+                self._logger.debug(
+                    'Executing Modbus function \'{}\' with params: {}'
+                    .format(modbus_function, params))
+                result = getattr(self._client, modbus_function)(**params)
+                self._logger.debug('Modbus function returned: {}'.format(result))
             if result:
                 signal = Signal(result.__dict__)
                 signal.params = params
