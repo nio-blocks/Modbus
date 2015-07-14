@@ -68,9 +68,14 @@ class Modbus(Block):
         super().stop()
 
     def _connect(self):
+        self._logger.debug('Connecting to modbus')
         self._client = pymodbus3.client.sync.ModbusTcpClient(self.host)
+        self._logger.debug('Succesfully connected to modbus')
 
     def _execute(self, modbus_function, params, retry=False):
+        self._logger.debug('Executing Modbus function \'{}\' with params: {}, '
+                           'is_retry: {}'
+                           .format(modbus_function, params, retry))
         try:
             result = getattr(self._client, modbus_function)(**params)
             if result:
@@ -83,10 +88,10 @@ class Modbus(Block):
                 self._logger.exception('Failed to execute Modbus function. '
                                        'Reconnecting and retyring one time.')
                 self._connect()
-                self._execute(modbus_function, params, True)
+                return self._execute(modbus_function, params, True)
             else:
-                self._logger.exception('Failed to execute Modbus function. '
-                                       'Return failed.')
+                self._logger.exception('Durring retry, failed to execute '
+                                       'Modbus function. Aborting execution.')
         except:
             self._logger.exception('Failed to execute Modbus function')
 

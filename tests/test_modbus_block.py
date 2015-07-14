@@ -30,6 +30,7 @@ class TestModbus(NIOBlockTestCase):
 
     @patch('pymodbus3.client.sync.ModbusTcpClient')
     def test_defaults(self, mock_client):
+        ''' Test that read_coils is called with default configuration '''
         blk = Modbus()
         self.configure_block(blk, {})
         self.assertEqual(mock_client.call_count, 1)
@@ -45,6 +46,7 @@ class TestModbus(NIOBlockTestCase):
 
     @patch('pymodbus3.client.sync.ModbusTcpClient')
     def test_write_coil(self, mock_client):
+        ''' Test write_coil function '''
         blk = Modbus()
         self.configure_block(blk, {'function_name': 'write_coil'})
         self.assertEqual(mock_client.call_count, 1)
@@ -61,6 +63,7 @@ class TestModbus(NIOBlockTestCase):
 
     @patch('pymodbus3.client.sync.ModbusTcpClient')
     def test_write_multiple_coils(self, mock_client):
+        ''' Test write_multiple_coil function '''
         blk = Modbus()
         self.configure_block(blk, {'function_name': 'write_multiple_coils'})
         self.assertEqual(mock_client.call_count, 1)
@@ -77,7 +80,7 @@ class TestModbus(NIOBlockTestCase):
 
     @patch('pymodbus3.client.sync.ModbusTcpClient')
     def test_exception_code(self, mock_client):
-        ''' Sometimes the response contains an exception_code '''
+        ''' Test output signal when response contains an exception_code '''
         blk = Modbus()
         self.configure_block(blk, {})
         # Simulate some exception response from the modbus read
@@ -94,22 +97,46 @@ class TestModbus(NIOBlockTestCase):
 
     @patch('pymodbus3.client.sync.ModbusTcpClient')
     def test_execute_exception(self, mock_client):
+        ''' Test behavior when modbus function raises a ModbusIOException '''
         blk = Modbus()
         self.configure_block(blk, {})
         self.assertEqual(mock_client.call_count, 1)
-        # Simulate some response from the modbus read
+        # Simulate an exception in the modbus read
         blk._client.read_coils.side_effect = ModbusIOException
-        #blk._client.read_coils.return_value = SampleResponse()
         blk.start()
         # Read once and then retry. No output signal.
         blk.process_signals([Signal()])
+        # Modbus function is called twice. Once for the retry.
         self.assertEqual(blk._client.read_coils.call_count, 2)
+        # No signals are output on exceptions.
         self.assertFalse(bool(len(self.signals['default'])))
-        # The retry created and new client
+        # The retry created a new client before calling modbus function again.
+        self.assertEqual(mock_client.call_count, 2)
+        blk.stop()
+
+    @patch('pymodbus3.client.sync.ModbusTcpClient')
+    def test_execute_retry_success(self, mock_client):
+        ''' Test behavior when execute retry works '''
+        blk = Modbus()
+        self.configure_block(blk, {})
+        self.assertEqual(mock_client.call_count, 1)
+        # Simulate an exception and then a success.
+        blk._client.read_coils.side_effect = \
+            [ModbusIOException, SampleResponse()]
+        blk.start()
+        # Read once and then retry.
+        blk.process_signals([Signal()])
+        # Modbus function is called twice. Once for the retry.
+        self.assertEqual(blk._client.read_coils.call_count, 2)
+        # A signal is output because of successful retry.
+        self.assertTrue(bool(len(self.signals['default'])))
+        self.assertEqual(self.signals['default'][0].value, 'default')
+        # The retry created a new client before calling modbus function again.
         self.assertEqual(mock_client.call_count, 2)
         blk.stop()
 
     def test_exception_detail_codes(self):
+        ''' Test that each exception code sets exception_details '''
         blk = Modbus()
         # Check that the message is different for each code
         signal = Signal()
