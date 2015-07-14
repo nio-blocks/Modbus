@@ -30,7 +30,7 @@ class Modbus(Block):
         port (int): The modbus port to connect to.
     """
 
-    version = VersionProperty(version='0.1.0')
+    version = VersionProperty(version='0.1.1')
     host = StringProperty(title='Host', default='127.0.0.1')
     port = IntProperty(title='Port', visible=False)
     function_name = SelectProperty(FunctionName,
