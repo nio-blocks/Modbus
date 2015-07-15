@@ -90,7 +90,7 @@ class Modbus(Block):
                 self._connect()
                 return self._execute(modbus_function, params, True)
             else:
-                self._logger.exception('Durring retry, failed to execute '
+                self._logger.exception('During retry, failed to execute '
                                        'Modbus function. Aborting execution.')
         except:
             self._logger.exception('Failed to execute Modbus function')
