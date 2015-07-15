@@ -30,7 +30,7 @@ class Modbus(Block):
         port (int): The modbus port to connect to.
     """
 
-    version = VersionProperty(version='0.1.0')
+    version = VersionProperty(version='0.1.1')
     host = StringProperty(title='Host', default='127.0.0.1')
     port = IntProperty(title='Port', visible=False)
     function_name = SelectProperty(FunctionName,
@@ -69,9 +69,14 @@ class Modbus(Block):
         super().stop()
 
     def _connect(self):
+        self._logger.debug('Connecting to modbus')
         self._client = pymodbus3.client.sync.ModbusTcpClient(self.host)
+        self._logger.debug('Succesfully connected to modbus')
 
     def _execute(self, modbus_function, params, retry=False):
+        self._logger.debug('Executing Modbus function \'{}\' with params: {}, '
+                           'is_retry: {}'
+                           .format(modbus_function, params, retry))
         try:
             with self._execute_lock:
                 self._logger.debug(
@@ -89,10 +94,10 @@ class Modbus(Block):
                 self._logger.exception('Failed to execute Modbus function. '
                                        'Reconnecting and retyring one time.')
                 self._connect()
-                self._execute(modbus_function, params, True)
+                return self._execute(modbus_function, params, True)
             else:
-                self._logger.exception('Failed to execute Modbus function. '
-                                       'Return failed.')
+                self._logger.exception('During retry, failed to execute '
+                                       'Modbus function. Aborting execution.')
         except:
             self._logger.exception('Failed to execute Modbus function')
 
