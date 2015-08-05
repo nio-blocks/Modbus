@@ -25,19 +25,19 @@ class ModbusRTU(Block):
     """ Communicate with a device using Modbus over RTU.
 
     Parameters:
-        host (str): The host to connect to.
-        port (int): The modbus port to connect to.
+        slave_address (str): Slave address of modbus device.
+        port (str): Serial port modbus device is connected to.
     """
 
-    version = VersionProperty(version='0.1.1')
+    version = VersionProperty(version='0.1.0')
     port = StringProperty(title='Serial Port', default='/dev/ttyUSB0')
     slave_address = IntProperty(title='Slave Address', default=1)
     function_name = SelectProperty(FunctionName,
                                    title='Function Name',
                                    default=FunctionName.read_input_registers)
     address = ExpressionProperty(title='Starting Address', default='0')
-    number_of_address = IntProperty(title='Number of coils/registers to read',
-                                    default=1)
+    count = IntProperty(title='Number of coils/registers to read',
+                        default=1)
     value = ExpressionProperty(title='Write Value(s)', default='{{ True }}')
 
     def __init__(self):
@@ -52,14 +52,16 @@ class ModbusRTU(Block):
     def process_signals(self, signals, input_id='default'):
         output = []
         for signal in signals:
-            modbus_function = self._modbus_function()
-            params = self._prepare_params(signal)
-            if modbus_function is None or params is None:
-                # A warning method has already been logged if we get here
-                continue
-            output_signal = self._execute(modbus_function, params)
-            if output_signal:
-                output.append(output_signal)
+            try:
+                modbus_function = self._modbus_function()
+                params = self._prepare_params(signal)
+                response = self._execute(modbus_function, params)
+                output_signal = self._process_response(response, params)
+                if output_signal:
+                    output.append(output_signal)
+            except:
+                self._logger.exception(
+                    'Failed to process signal: {}'.format(signal))
         if output:
             self.notify_signals(output)
 
@@ -75,15 +77,12 @@ class ModbusRTU(Block):
         try:
             with self._execute_lock:
                 self._logger.debug(
-                    'Executing Modbus function \'{}\' with params: {}'
+                    'Modbus function \'{}\' with params: {} has lock'
                     .format(modbus_function, params))
-                result = getattr(self._client, modbus_function)(**params)
-                self._logger.debug('Modbus function returned: {}'.format(result))
-            if result:
-                signal = Signal({'values': result})
-                signal.params = params
-                self._check_exceptions(signal)
-                return signal
+                response = getattr(self._client, modbus_function)(**params)
+                self._logger.debug(
+                    'Modbus function returned: {}'.format(response))
+                return response
         except:
             if not retry:
                 self._logger.exception('Failed to execute Modbus function. '
@@ -94,25 +93,37 @@ class ModbusRTU(Block):
                 self._logger.exception('During retry, failed to execute '
                                        'Modbus function. Aborting execution.')
 
-    def _prepare_params(self, signal):
-        try:
-            if self.function_name.value in [4]:
-                params = {'functioncode': 4,
-                          'numberOfRegisters': self.number_of_address}
-            else:
-                params = {}
-            address = self._address(signal)
-            params['registeraddress'] = address
-            return params
-        except:
-            self._logger.warning('Failed to prepare function params',
-                                 exc_info=True)
-
     def _modbus_function(self):
-        if self.function_name.value == 2:
+        if self.function_name.value in [1, 2]:
+            return 'read_bit'
+        elif self.function_name.value in [5, 15]:
+            return 'write_bit'
+        elif self.function_name.value in [3, 4]:
             return 'read_registers'
-        elif self.function_name.value == 4:
-            return 'read_registers'
+        elif self.function_name.value in [6]:
+            return 'write_register'
+        elif self.function_name.value in [16]:
+            return 'write_registers'
+
+    def _prepare_params(self, signal):
+        params = {}
+        params['functioncode'] = self.function_name.value
+        params['registeraddress'] = self._address(signal)
+        if self.function_name.value in [3, 4]:
+            params['numberOfRegisters'] = self.count
+        elif self.function_name.value in [5, 6, 15, 16]:
+            try:
+                params['value'] = self.value(signal)
+            except:
+                raise Exception('Invalid configuration of `value` property')
+        return params
+
+    def _process_response(self, response, params):
+        if response:
+            signal = Signal({'values': response})
+            signal.params = params
+            self._check_exceptions(signal)
+            return signal
 
     def _check_exceptions(self, signal):
         ''' Add exception details if the response has an exception code '''
