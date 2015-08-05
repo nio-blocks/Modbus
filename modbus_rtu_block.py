@@ -36,6 +36,8 @@ class ModbusRTU(Block):
                                    title='Function Name',
                                    default=FunctionName.read_input_registers)
     address = ExpressionProperty(title='Starting Address', default='0')
+    number_of_address = IntProperty(title='Number of coils/registers to read',
+                                    default=1)
     value = ExpressionProperty(title='Write Value(s)', default='{{ True }}')
 
     def __init__(self):
@@ -61,10 +63,6 @@ class ModbusRTU(Block):
         if output:
             self.notify_signals(output)
 
-    def stop(self):
-        self._client.close()
-        super().stop()
-
     def _connect(self):
         self._logger.debug('Connecting to modbus')
         self._client = minimalmodbus.Instrument(self.port, self.slave_address)
@@ -86,7 +84,7 @@ class ModbusRTU(Block):
                 signal.params = params
                 self._check_exceptions(signal)
                 return signal
-        except ModbusIOExceptiontttnnn:
+        except:
             if not retry:
                 self._logger.exception('Failed to execute Modbus function. '
                                        'Reconnecting and retyring one time.')
@@ -95,13 +93,12 @@ class ModbusRTU(Block):
             else:
                 self._logger.exception('During retry, failed to execute '
                                        'Modbus function. Aborting execution.')
-        except:
-            self._logger.exception('Failed to execute Modbus function')
 
     def _prepare_params(self, signal):
         try:
             if self.function_name.value in [4]:
-                params = {'functioncode': 4}
+                params = {'functioncode': 4,
+                          'numberOfRegisters': self.number_of_address}
             else:
                 params = {}
             address = self._address(signal)

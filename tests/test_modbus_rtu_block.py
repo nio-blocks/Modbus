@@ -39,7 +39,8 @@ class TestModbusRTU(NIOBlockTestCase):
         # Read once and assert output
         blk.process_signals([Signal()])
         blk._client.read_registers.assert_called_once_with(registeraddress=0,
-                                                           functioncode=4)
+                                                           functioncode=4,
+                                                           numberOfRegisters=1)
         self.assertTrue(len(self.signals['default']))
         self.assertEqual(self.signals['default'][0].values, [42])
         blk.stop()
