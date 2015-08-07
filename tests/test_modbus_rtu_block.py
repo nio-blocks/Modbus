@@ -99,3 +99,16 @@ class TestModbusRTU(NIOBlockTestCase):
         self.assertEqual(blk._client.write_bit.call_count, 0)
         self.assertFalse(len(self.signals['default']))
         blk.stop()
+
+    @patch('minimalmodbus.Instrument')
+    def test_no_response(self, mock_client):
+        ''' Test when value is invalid '''
+        blk = ModbusRTU()
+        self.configure_block(blk, {})
+        self.assertEqual(mock_client.call_count, 1)
+        blk._client.read_registers.return_value = None
+        blk.start()
+        blk.process_signals([Signal()])
+        self.assertEqual(blk._client.read_registers.call_count, 1)
+        self.assertFalse(len(self.signals['default']))
+        blk.stop()
