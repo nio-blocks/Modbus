@@ -41,3 +41,48 @@ Notifies a signal for each frame read from Modbus. Attributes on signals include
   - registers (optional): List of int values when reading registers.
   - exception_code (int, optional): Error code when function call is invalid.
   - exception_details (str, optional): Error details when function call is invalid.
+
+------------------------------------------------------------------------------
+
+ModbusRTU
+=========
+
+Communicate with a Modbus device over RTU Serial.
+
+Properties
+----------
+
+-   **port**: Serial port.
+-   **slave_address**: Slave (unit) address of modbus device.
+-   **function_name**: Modbus function call to execute.
+-   **address**: The starting address to read from or write to.
+-   **value**: The value to write to the specified address.
+-   **count**: The number of coils/discretes/registers to read.
+
+Dependencies
+------------
+
+-   [minimalmodbus](https://pypi.python.org/pypi/MinimalModbus)
+
+Commands
+--------
+None
+
+Input
+-----
+Drive reads and writes with input signals.
+
+Output
+------
+
+### default
+
+Notifies a signal for each frame read from Modbus. Attributes on signals include (but are not limited to) the following:
+
+  - params: Dictionary of parameters passed to function call.
+    - registereddress: Starting address.
+    - functioncode: Modbus function code.
+    - value (optional): Value on write.
+  - values (optional): List of int values when reading registers.
+  - exception_code (int, optional): Error code when function call is invalid.
+  - exception_details (str, optional): Error details when function call is invalid.

@@ -1,1 +1,2 @@
 pymodbus3
+minimalmodbus
