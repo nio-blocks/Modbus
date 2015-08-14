@@ -7,7 +7,6 @@ from nio.common.signal.base import Signal
 
 pymodbus3_available = True
 try:
-    from pymodbus3.exceptions import ModbusIOException
     from ..modbus_block import Modbus
 except:
     pymodbus3_available = False
@@ -97,12 +96,12 @@ class TestModbus(NIOBlockTestCase):
 
     @patch('pymodbus3.client.sync.ModbusTcpClient')
     def test_execute_exception(self, mock_client):
-        ''' Test behavior when modbus function raises a ModbusIOException '''
+        ''' Test behavior when modbus function raises an Exception '''
         blk = Modbus()
         self.configure_block(blk, {})
         self.assertEqual(mock_client.call_count, 1)
         # Simulate an exception in the modbus read
-        blk._client.read_coils.side_effect = ModbusIOException
+        blk._client.read_coils.side_effect = Exception
         blk.start()
         # Read once and then retry. No output signal.
         blk.process_signals([Signal()])
@@ -122,7 +121,7 @@ class TestModbus(NIOBlockTestCase):
         self.assertEqual(mock_client.call_count, 1)
         # Simulate an exception and then a success.
         blk._client.read_coils.side_effect = \
-            [ModbusIOException, SampleResponse()]
+            [Exception, SampleResponse()]
         blk.start()
         # Read once and then retry.
         blk.process_signals([Signal()])
