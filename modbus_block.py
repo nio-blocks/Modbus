@@ -1,6 +1,6 @@
 from enum import Enum
+import logging
 import pymodbus3.client.sync
-from pymodbus3.exceptions import ModbusIOException
 from nio.common.block.base import Block
 from nio.common.signal.base import Signal
 from nio.common.discovery import Discoverable, DiscoverableType
@@ -46,6 +46,8 @@ class Modbus(Block):
 
     def configure(self, context):
         super().configure(context)
+        # We don't need pymodbus3 to log for us. The block will handle that.
+        logging.getLogger('pymodbus3').setLevel(logging.CRITICAL)
         self._connect()
 
     def process_signals(self, signals, input_id='default'):
@@ -74,32 +76,34 @@ class Modbus(Block):
         self._logger.debug('Succesfully connected to modbus')
 
     def _execute(self, modbus_function, params, retry=False):
-        self._logger.debug('Executing Modbus function \'{}\' with params: {}, '
-                           'is_retry: {}'
+        self._logger.debug("Waiting for lock to execute Modbus function '{}' "
+                           'with params: {}, is_retry: {}'
                            .format(modbus_function, params, retry))
+        with self._execute_lock:
+            return self._execute_locked(modbus_function, params, retry)
+
+    def _execute_locked(self, modbus_function, params, retry=False):
         try:
-            with self._execute_lock:
-                self._logger.debug(
-                    'Executing Modbus function \'{}\' with params: {}'
-                    .format(modbus_function, params))
-                result = getattr(self._client, modbus_function)(**params)
-                self._logger.debug('Modbus function returned: {}'.format(result))
+            self._logger.debug(
+                "Executing Modbus function '{}' with params: {}, is_retry: {}"
+                .format(modbus_function, params, retry))
+            result = getattr(self._client, modbus_function)(**params)
+            self._logger.debug('Modbus function returned: {}'.format(result))
             if result:
                 signal = Signal(result.__dict__)
                 signal.params = params
                 self._check_exceptions(signal)
                 return signal
-        except ModbusIOException:
+        except:
             if not retry:
-                self._logger.exception('Failed to execute Modbus function. '
-                                       'Reconnecting and retyring one time.')
+                self._logger.warning('Failed to execute Modbus function. '
+                                     'Reconnecting and retyring one time.',
+                                     exc_info=True)
                 self._connect()
-                return self._execute(modbus_function, params, True)
+                return self._execute_locked(modbus_function, params, True)
             else:
                 self._logger.exception('During retry, failed to execute '
                                        'Modbus function. Aborting execution.')
-        except:
-            self._logger.exception('Failed to execute Modbus function')
 
     def _address(self, signal):
         try:

@@ -11,7 +11,6 @@ Properties
 -   **function_name**: Modbus function call to execute.
 -   **address**: The starting address to read from or write to.
 -   **value**: The value to write to the specified address.
--   **count**: The number of coils/discretes/registers to read.
 
 Dependencies
 ------------
