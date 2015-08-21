@@ -2,7 +2,9 @@ from enum import Enum
 import logging
 import pymodbus3.client.sync
 from nio.common.block.base import Block
+from nio.common.block.controller import BlockStatus
 from nio.common.signal.base import Signal
+from nio.common.signal.status import BlockStatusSignal
 from nio.common.discovery import Discoverable, DiscoverableType
 from nio.metadata.properties import StringProperty, IntProperty, \
     ExpressionProperty, VersionProperty, SelectProperty, PropertyHolder
@@ -39,6 +41,9 @@ class Modbus(Retry, Block):
                                    default=FunctionName.read_coils)
     address = ExpressionProperty(title='Starting Address', default='0')
     value = ExpressionProperty(title='Write Value(s)', default='{{ True }}')
+    retry = IntProperty(title='Number of Retries before Error',
+                        default=10,
+                        visible=False)
 
     def __init__(self):
         super().__init__()
@@ -47,6 +52,7 @@ class Modbus(Retry, Block):
 
     def configure(self, context):
         super().configure(context)
+        self.num_retries = self.retry
         # We don't need pymodbus3 to log for us. The block will handle that.
         logging.getLogger('pymodbus3').setLevel(logging.CRITICAL)
         self._connect()
@@ -70,7 +76,11 @@ class Modbus(Retry, Block):
                     output.append(output_signal)
             except:
                 # Execution failed even with retry
-                self._logger.exception("Aborting retries")
+                self._logger.exception(
+                    "Aborting retry and putting block in ERROR")
+                status_signal = BlockStatusSignal(
+                    BlockStatus.error, 'Out of retries.')
+                self.notify_management_signal(status_signal)
         if output:
             self.notify_signals(output)
 
