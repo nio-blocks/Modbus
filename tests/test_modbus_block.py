@@ -94,8 +94,10 @@ class TestModbus(NIOBlockTestCase):
                          'are not allowed or do not exist in slave')
         blk.stop()
 
+    # Mock sleep in order for the test to run fast
+    @patch('modbus.mixins.retry.retry.sleep')
     @patch('pymodbus3.client.sync.ModbusTcpClient')
-    def test_execute_exception(self, mock_client):
+    def test_execute_exception(self, mock_client, mock_sleep):
         ''' Test behavior when modbus function raises an Exception '''
         blk = Modbus()
         self.configure_block(blk, {})
@@ -106,12 +108,13 @@ class TestModbus(NIOBlockTestCase):
         # Read once and then retry. No output signal.
         blk.process_signals([Signal()])
         # Modbus function is called twice. Once for the retry.
-        self.assertEqual(blk._client.read_coils.call_count, 2)
+        self.assertEqual(blk._client.read_coils.call_count, 11)
         # No signals are output on exceptions.
         self.assertFalse(bool(len(self.signals['default'])))
         # The retry created a new client before calling modbus function again.
-        self.assertEqual(mock_client.call_count, 2)
+        self.assertEqual(mock_client.call_count, 11)
         blk.stop()
+        self.assertEqual(mock_sleep.call_count, 10)
 
     @patch('pymodbus3.client.sync.ModbusTcpClient')
     def test_execute_retry_success(self, mock_client):
