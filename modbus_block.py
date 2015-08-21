@@ -7,6 +7,7 @@ from nio.common.discovery import Discoverable, DiscoverableType
 from nio.metadata.properties import StringProperty, IntProperty, \
     ExpressionProperty, VersionProperty, SelectProperty, PropertyHolder
 from nio.modules.threading import spawn, Event, Lock
+from .mixins.retry.retry import Retry
 
 
 class FunctionName(Enum):
@@ -21,7 +22,7 @@ class FunctionName(Enum):
 
 
 @Discoverable(DiscoverableType.block)
-class Modbus(Block):
+class Modbus(Retry, Block):
 
     """ Communicate with a device using Modbus.
 
@@ -60,9 +61,16 @@ class Modbus(Block):
             if modbus_function is None or address is None or params is None:
                 # A warning method has already been logged if we get here
                 continue
-            output_signal = self._execute(modbus_function, params)
-            if output_signal:
-                output.append(output_signal)
+            try:
+                output_signal = self._execute_with_retry(
+                    self._execute,
+                    modbus_function=modbus_function,
+                    params=params)
+                if output_signal:
+                    output.append(output_signal)
+            except:
+                # Execution failed even with retry
+                self._logger.exception("Aborting retries")
         if output:
             self.notify_signals(output)
 
@@ -75,35 +83,30 @@ class Modbus(Block):
         self._client = pymodbus3.client.sync.ModbusTcpClient(self.host)
         self._logger.debug('Succesfully connected to modbus')
 
-    def _execute(self, modbus_function, params, retry=False):
+    def _execute(self, modbus_function, params):
         self._logger.debug("Waiting for lock to execute Modbus function '{}' "
-                           'with params: {}, is_retry: {}'
-                           .format(modbus_function, params, retry))
+                           'with params: {}'
+                           .format(modbus_function, params))
         with self._execute_lock:
-            return self._execute_locked(modbus_function, params, retry)
+            return self._execute_locked(modbus_function, params)
 
-    def _execute_locked(self, modbus_function, params, retry=False):
-        try:
-            self._logger.debug(
-                "Executing Modbus function '{}' with params: {}, is_retry: {}"
-                .format(modbus_function, params, retry))
-            result = getattr(self._client, modbus_function)(**params)
-            self._logger.debug('Modbus function returned: {}'.format(result))
-            if result:
-                signal = Signal(result.__dict__)
-                signal.params = params
-                self._check_exceptions(signal)
-                return signal
-        except:
-            if not retry:
-                self._logger.warning('Failed to execute Modbus function. '
-                                     'Reconnecting and retyring one time.',
-                                     exc_info=True)
-                self._connect()
-                return self._execute_locked(modbus_function, params, True)
-            else:
-                self._logger.exception('During retry, failed to execute '
-                                       'Modbus function. Aborting execution.')
+    def _execute_locked(self, modbus_function, params):
+        self._logger.debug(
+            "Executing Modbus function '{}' with params: {}"
+            .format(modbus_function, params))
+        result = getattr(self._client, modbus_function)(**params)
+        self._logger.debug('Modbus function returned: {}'.format(result))
+        if result:
+            signal = Signal(result.__dict__)
+            signal.params = params
+            self._check_exceptions(signal)
+            return signal
+
+    def _before_retry(self, retry_count, **kwargs):
+        do_retry = super()._before_retry(retry_count, **kwargs)
+        if do_retry:
+            self._connect()
+        return do_retry
 
     def _address(self, signal):
         try:
