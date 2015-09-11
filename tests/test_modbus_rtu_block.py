@@ -97,7 +97,7 @@ class TestModbusRTU(NIOBlockTestCase):
 
     @patch('minimalmodbus.Instrument')
     def test_no_response(self, mock_client):
-        ''' Test when no value is read from register'''
+        ''' Test when value is invalid '''
         blk = ModbusRTU()
         self.configure_block(blk, {})
         self.assertEqual(mock_client.call_count, 1)
@@ -108,8 +108,10 @@ class TestModbusRTU(NIOBlockTestCase):
         self.assertFalse(len(self.signals['default']))
         blk.stop()
 
+    # Mock sleep in order for the test to run fast
+    @patch('modbus.mixins.retry.retry.sleep')
     @patch('minimalmodbus.Instrument')
-    def test_execute_exception(self, mock_client):
+    def test_execute_exception(self, mock_client, mock_sleep):
         ''' Test behavior when modbus function raises an Exception '''
         blk = ModbusRTU()
         self.configure_block(blk, {})
@@ -120,12 +122,13 @@ class TestModbusRTU(NIOBlockTestCase):
         # Read once and then retry. No output signal.
         blk.process_signals([Signal()])
         # Modbus function is called twice. Once for the retry.
-        self.assertEqual(blk._client.read_registers.call_count, 2)
+        self.assertEqual(blk._client.read_registers.call_count, 11)
         # No signals are output on exceptions.
         self.assertFalse(bool(len(self.signals['default'])))
         # The retry created a new client before calling modbus function again.
-        self.assertEqual(mock_client.call_count, 2)
+        self.assertEqual(mock_client.call_count, 11)
         blk.stop()
+        self.assertEqual(mock_sleep.call_count, 10)
 
     @patch('minimalmodbus.Instrument')
     def test_execute_retry_success(self, mock_client):

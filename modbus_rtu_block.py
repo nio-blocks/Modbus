@@ -1,11 +1,14 @@
 from enum import Enum
 import minimalmodbus
 from nio.common.block.base import Block
+from nio.common.block.controller import BlockStatus
 from nio.common.signal.base import Signal
+from nio.common.signal.status import BlockStatusSignal
 from nio.common.discovery import Discoverable, DiscoverableType
 from nio.metadata.properties import StringProperty, IntProperty, \
     ExpressionProperty, VersionProperty, SelectProperty, PropertyHolder
 from nio.modules.threading import spawn, Event, Lock
+from .mixins.retry.retry import Retry
 
 
 class FunctionName(Enum):
@@ -20,7 +23,7 @@ class FunctionName(Enum):
 
 
 @Discoverable(DiscoverableType.block)
-class ModbusRTU(Block):
+class ModbusRTU(Retry, Block):
 
     """ Communicate with a device using Modbus over RTU.
 
@@ -39,6 +42,9 @@ class ModbusRTU(Block):
     count = IntProperty(title='Number of coils/registers to read',
                         default=1)
     value = ExpressionProperty(title='Write Value(s)', default='{{ True }}')
+    retry = IntProperty(title='Number of Retries before Error',
+                        default=10,
+                        visible=False)
 
     def __init__(self):
         super().__init__()
@@ -49,6 +55,7 @@ class ModbusRTU(Block):
     def configure(self, context):
         super().configure(context)
         self._connect()
+        self.num_retries = self.retry
         self._modbus_function = \
             self._function_name_from_code(self.function_name.value)
 
@@ -57,12 +64,18 @@ class ModbusRTU(Block):
         for signal in signals:
             try:
                 params = self._prepare_params(signal)
-                response = self._execute(params)
+                response = self._execute_with_retry(
+                    self._execute,
+                    params=params)
                 if response:
                     output.append(self._process_response(response, params))
             except:
+                # Execution failed even with retry
                 self._logger.exception(
-                    'Failed to process signal: {}'.format(signal))
+                    "Aborting retry and putting block in ERROR")
+                status_signal = BlockStatusSignal(
+                    BlockStatus.error, 'Out of retries.')
+                self.notify_management_signal(status_signal)
         if output:
             self.notify_signals(output)
 
@@ -75,22 +88,13 @@ class ModbusRTU(Block):
         self._logger.debug('Executing Modbus function \'{}\' with params: {}, '
                            'is_retry: {}'
                            .format(self._modbus_function, params, retry))
-        try:
-            with self._execute_lock:
-                return self._locked_execute(params)
-        except:
-            if not retry:
-                self._logger.exception('Failed to execute Modbus function. '
-                                       'Reconnecting and retyring one time.')
-                self._connect()
-                return self._execute(params, True)
-            else:
-                self._logger.exception('During retry, failed to execute '
-                                       'Modbus function. Aborting execution.')
+        with self._execute_lock:
+            return self._execute_locked(params)
 
-    def _locked_execute(self, params):
-        self._logger.debug('Modbus function \'{}\' with params: {} has lock'
-                           .format(self._modbus_function, params))
+    def _execute_locked(self, params):
+        self._logger.debug(
+            "Executing Modbus function '{}' with params: {}"
+            .format(self._modbus_function, params))
         response = getattr(self._client, self._modbus_function)(**params)
         self._logger.debug('Modbus function returned: {}'.format(response))
         return response
@@ -126,6 +130,12 @@ class ModbusRTU(Block):
             'params': params
         })
         return signal
+
+    def _before_retry(self, retry_count, **kwargs):
+        do_retry = super()._before_retry(retry_count, **kwargs)
+        if do_retry:
+            self._connect()
+        return do_retry
 
     def _address(self, signal):
         try:
