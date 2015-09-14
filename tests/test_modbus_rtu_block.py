@@ -12,11 +12,6 @@ except:
     minimalmodbus_available = False
 
 
-class SampleResponse():
-    def __init__(self, value='default'):
-        self.value = value
-
-
 @skipUnless(minimalmodbus_available, 'minimalmodbus is not available!!')
 class TestModbusRTU(NIOBlockTestCase):
 
@@ -111,4 +106,47 @@ class TestModbusRTU(NIOBlockTestCase):
         blk.process_signals([Signal()])
         self.assertEqual(blk._client.read_registers.call_count, 1)
         self.assertFalse(len(self.signals['default']))
+        blk.stop()
+
+    # Mock sleep in order for the test to run fast
+    @patch('modbus.mixins.retry.retry.sleep')
+    @patch('minimalmodbus.Instrument')
+    def test_execute_exception(self, mock_client, mock_sleep):
+        ''' Test behavior when modbus function raises an Exception '''
+        blk = ModbusRTU()
+        self.configure_block(blk, {})
+        self.assertEqual(mock_client.call_count, 1)
+        # Simulate an exception in the modbus read
+        blk._client.read_registers.side_effect = Exception
+        blk.start()
+        # Read once and then retry. No output signal.
+        blk.process_signals([Signal()])
+        # Modbus function is called twice. Once for the retry.
+        self.assertEqual(blk._client.read_registers.call_count, 11)
+        # No signals are output on exceptions.
+        self.assertFalse(bool(len(self.signals['default'])))
+        # The retry created a new client before calling modbus function again.
+        self.assertEqual(mock_client.call_count, 11)
+        blk.stop()
+        self.assertEqual(mock_sleep.call_count, 10)
+
+    @patch('minimalmodbus.Instrument')
+    def test_execute_retry_success(self, mock_client):
+        ''' Test behavior when execute retry works '''
+        blk = ModbusRTU()
+        self.configure_block(blk, {})
+        self.assertEqual(mock_client.call_count, 1)
+        # Simulate an exception and then a success.
+        blk._client.read_registers.side_effect = \
+            [Exception, [42]]
+        blk.start()
+        # Read once and then retry.
+        blk.process_signals([Signal()])
+        # Modbus function is called twice. Once for the retry.
+        self.assertEqual(blk._client.read_registers.call_count, 2)
+        # A signal is output because of successful retry.
+        self.assertTrue(bool(len(self.signals['default'])))
+        self.assertEqual(self.signals['default'][0].values, [42])
+        # The retry created a new client before calling modbus function again.
+        self.assertEqual(mock_client.call_count, 2)
         blk.stop()
