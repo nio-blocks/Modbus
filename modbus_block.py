@@ -61,12 +61,12 @@ class Modbus(Retry, Block):
     def process_signals(self, signals, input_id='default'):
         output = []
         for signal in signals:
-            if self._retry_failed:
-                self._logger.info(
-                    "Skipping signal since block is now in error")
-                return
-            else:
-                with self._process_lock:
+            with self._process_lock:
+                if self._retry_failed:
+                    self._logger.info(
+                        "Skipping signal since block is now in error")
+                    return
+                else:
                     output_signal = self._process_signal(signal)
                     if output_signal:
                         output.append(output_signal)
