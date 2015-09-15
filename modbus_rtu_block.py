@@ -49,8 +49,9 @@ class ModbusRTU(Retry, Block):
     def __init__(self):
         super().__init__()
         self._client = None
-        self._execute_lock = Lock()
+        self._process_lock = Lock()
         self._modbus_function = None
+        self._retry_failed = False
 
     def configure(self, context):
         super().configure(context)
@@ -62,22 +63,30 @@ class ModbusRTU(Retry, Block):
     def process_signals(self, signals, input_id='default'):
         output = []
         for signal in signals:
-            try:
-                params = self._prepare_params(signal)
-                response = self._execute_with_retry(
-                    self._execute,
-                    params=params)
-                if response:
-                    output.append(self._process_response(response, params))
-            except:
-                # Execution failed even with retry
-                self._logger.exception(
-                    "Aborting retry and putting block in ERROR")
-                status_signal = BlockStatusSignal(
-                    BlockStatus.error, 'Out of retries.')
-                self.notify_management_signal(status_signal)
+            with self._process_lock:
+                if self._retry_failed:
+                    self._logger.info(
+                        "Skipping signal since block is now in error")
+                    return
+                else:
+                    output_signal = self._process_signal(signal)
+                    if output_signal:
+                        output.append(output_signal)
         if output:
             self.notify_signals(output)
+
+    def _process_signal(self, signal):
+        try:
+            params = self._prepare_params(signal)
+            return self._execute_with_retry(self._execute, params=params)
+        except:
+            # Execution failed even with retry
+            self._logger.exception(
+                "Aborting retry and putting block in ERROR")
+            status_signal = BlockStatusSignal(
+                BlockStatus.error, 'Out of retries.')
+            self.notify_management_signal(status_signal)
+            self._retry_failed = True
 
     def _connect(self):
         self._logger.debug('Connecting to modbus')
@@ -88,16 +97,9 @@ class ModbusRTU(Retry, Block):
         self._logger.debug('Executing Modbus function \'{}\' with params: {}, '
                            'is_retry: {}'
                            .format(self._modbus_function, params, retry))
-        with self._execute_lock:
-            return self._execute_locked(params)
-
-    def _execute_locked(self, params):
-        self._logger.debug(
-            "Executing Modbus function '{}' with params: {}"
-            .format(self._modbus_function, params))
         response = getattr(self._client, self._modbus_function)(**params)
         self._logger.debug('Modbus function returned: {}'.format(response))
-        return response
+        return self._process_response(response, params)
 
     def _function_name_from_code(self, code):
         return {
@@ -125,6 +127,8 @@ class ModbusRTU(Retry, Block):
         return params
 
     def _process_response(self, response, params):
+        if not response:
+            return
         signal = Signal({
             'values': response,
             'params': params

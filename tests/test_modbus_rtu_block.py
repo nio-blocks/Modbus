@@ -150,3 +150,29 @@ class TestModbusRTU(NIOBlockTestCase):
         # The retry created a new client before calling modbus function again.
         self.assertEqual(mock_client.call_count, 2)
         blk.stop()
+
+    # Mock sleep in order for the test to run fast
+    @patch('modbus.mixins.retry.retry.sleep')
+    @patch('minimalmodbus.Instrument')
+    def test_retry_lock(self, mock_client, mock_sleep):
+        ''' Test that lock processes signals in order and drops on error '''
+        blk = ModbusRTU()
+        self.configure_block(blk, {})
+        # Lower number of retries for this test
+        blk.num_retries = 1
+        # Simulate an exception in the modbus read
+        blk._client.read_registers.side_effect = Exception
+        blk.start()
+        # Read once and then retry. No output signal.
+        blk.process_signals([Signal()])
+        blk.process_signals([Signal()])
+        # Modbus function is called twice. Once for the retry of the first
+        # signal and 0 times for the second signal since the block failed
+        # on the first one.
+        self.assertEqual(blk._client.read_registers.call_count, 2)
+        # No signals are output on exceptions.
+        self.assertFalse(bool(len(self.signals['default'])))
+        # The retry created a new client before calling modbus function again.
+        self.assertEqual(mock_client.call_count, 2)
+        blk.stop()
+        self.assertEqual(mock_sleep.call_count, 1)
