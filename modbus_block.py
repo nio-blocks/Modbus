@@ -48,7 +48,8 @@ class Modbus(Retry, Block):
     def __init__(self):
         super().__init__()
         self._client = None
-        self._execute_lock = Lock()
+        self._process_lock = Lock()
+        self._retry_failed = False
 
     def configure(self, context):
         super().configure(context)
@@ -60,29 +61,37 @@ class Modbus(Retry, Block):
     def process_signals(self, signals, input_id='default'):
         output = []
         for signal in signals:
-            modbus_function = self.function_name.value
-            address = self._address(signal)
-            params = self._prepare_params(modbus_function, signal)
-            params['address'] = address
-            if modbus_function is None or address is None or params is None:
-                # A warning method has already been logged if we get here
-                continue
-            try:
-                output_signal = self._execute_with_retry(
-                    self._execute,
-                    modbus_function=modbus_function,
-                    params=params)
-                if output_signal:
-                    output.append(output_signal)
-            except:
-                # Execution failed even with retry
-                self._logger.exception(
-                    "Aborting retry and putting block in ERROR")
-                status_signal = BlockStatusSignal(
-                    BlockStatus.error, 'Out of retries.')
-                self.notify_management_signal(status_signal)
+            if self._retry_failed:
+                self._logger.info(
+                    "Skipping signal since block is now in error")
+                return
+            else:
+                with self._process_lock:
+                    output_signal = self._process_signal(signal)
+                    if output_signal:
+                        output.append(output_signal)
         if output:
             self.notify_signals(output)
+
+    def _process_signal(self, signal):
+        modbus_function = self.function_name.value
+        address = self._address(signal)
+        params = self._prepare_params(modbus_function, signal)
+        params['address'] = address
+        if modbus_function is None or address is None or params is None:
+            # A warning method has already been logged if we get here
+            return
+        try:
+            return self._execute_with_retry(
+                self._execute, modbus_function=modbus_function, params=params)
+        except:
+            # Execution failed even with retry
+            self._logger.exception(
+                "Aborting retry and putting block in ERROR")
+            status_signal = BlockStatusSignal(
+                BlockStatus.error, 'Out of retries.')
+            self.notify_management_signal(status_signal)
+            self._retry_failed = True
 
     def stop(self):
         self._client.close()
@@ -97,13 +106,6 @@ class Modbus(Retry, Block):
         self._logger.debug("Waiting for lock to execute Modbus function '{}' "
                            'with params: {}'
                            .format(modbus_function, params))
-        with self._execute_lock:
-            return self._execute_locked(modbus_function, params)
-
-    def _execute_locked(self, modbus_function, params):
-        self._logger.debug(
-            "Executing Modbus function '{}' with params: {}"
-            .format(modbus_function, params))
         result = getattr(self._client, modbus_function)(**params)
         self._logger.debug('Modbus function returned: {}'.format(result))
         if result:
