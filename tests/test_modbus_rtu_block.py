@@ -138,3 +138,31 @@ class TestModbusRTU(NIOBlockTestCase):
         # The retry created a new client before calling modbus function again.
         self.assertEqual(mock_client.call_count, 2)
         blk.stop()
+
+    @patch('minimalmodbus.Instrument')
+    def test_lock_counter(self, mock_client):
+        ''' Test that the num_locks counter works '''
+        blk = ModbusRTU()
+        def _process_signal(signal):
+            self.assertEqual(blk._num_locks, 1)
+            return signal
+        blk._process_signal = _process_signal
+        self.configure_block(blk, {})
+        blk.start()
+        self.assertEqual(blk._num_locks, 0)
+        blk.process_signals([Signal()])
+        self.assertEqual(blk._num_locks, 0)
+        self.assertEqual(len(self.signals['default']), 1)
+        blk.stop()
+
+    @patch('minimalmodbus.Instrument')
+    def test_max_locks(self, mock_client):
+        ''' Test that signals are dropped when the max locks is reached '''
+        blk = ModbusRTU()
+        self.configure_block(blk, {})
+        # Put the block in a state where all the max locks is reached
+        blk._num_locks = blk._max_locks
+        blk.start()
+        blk.process_signals([Signal()])
+        self.assertEqual(len(self.signals['default']), 0)
+        blk.stop()

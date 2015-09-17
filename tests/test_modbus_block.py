@@ -125,6 +125,34 @@ class TestModbus(NIOBlockTestCase):
         self.assertEqual(mock_client.call_count, 2)
         blk.stop()
 
+    @patch('pymodbus3.client.sync.ModbusTcpClient')
+    def test_lock_counter(self, mock_client):
+        ''' Test that the num_locks counter works '''
+        blk = Modbus()
+        def _process_signal(signal):
+            self.assertEqual(blk._num_locks, 1)
+            return signal
+        blk._process_signal = _process_signal
+        self.configure_block(blk, {})
+        blk.start()
+        self.assertEqual(blk._num_locks, 0)
+        blk.process_signals([Signal()])
+        self.assertEqual(blk._num_locks, 0)
+        self.assertEqual(len(self.signals['default']), 1)
+        blk.stop()
+
+    @patch('pymodbus3.client.sync.ModbusTcpClient')
+    def test_max_locks(self, mock_client):
+        ''' Test that signals are dropped when the max locks is reached '''
+        blk = Modbus()
+        self.configure_block(blk, {})
+        # Put the block in a state where all the max locks is reached
+        blk._num_locks = blk._max_locks
+        blk.start()
+        blk.process_signals([Signal()])
+        self.assertEqual(len(self.signals['default']), 0)
+        blk.stop()
+
     def test_exception_detail_codes(self):
         ''' Test that each exception code sets exception_details '''
         blk = Modbus()

@@ -50,6 +50,8 @@ class Modbus(Retry, Block):
         self._client = None
         self._process_lock = Lock()
         self._retry_failed = False
+        self._num_locks = 0
+        self._max_locks = 5
 
     def configure(self, context):
         super().configure(context)
@@ -61,6 +63,11 @@ class Modbus(Retry, Block):
     def process_signals(self, signals, input_id='default'):
         output = []
         for signal in signals:
+            if self._num_locks >= self._max_locks:
+                self._logger.warning(
+                    "Skipping signal; max numbers of signals waiting")
+                continue
+            self._num_locks += 1
             with self._process_lock:
                 if self._retry_failed:
                     self._logger.info(
@@ -70,6 +77,7 @@ class Modbus(Retry, Block):
                     output_signal = self._process_signal(signal)
                     if output_signal:
                         output.append(output_signal)
+            self._num_locks -= 1
         if output:
             self.notify_signals(output)
 
