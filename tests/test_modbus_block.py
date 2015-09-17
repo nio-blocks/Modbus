@@ -94,27 +94,15 @@ class TestModbus(NIOBlockTestCase):
                          'are not allowed or do not exist in slave')
         blk.stop()
 
-    # Mock sleep in order for the test to run fast
-    @patch('modbus.mixins.retry.retry.sleep')
+    @patch('modbus.modbus_block.sleep')
     @patch('pymodbus3.client.sync.ModbusTcpClient')
-    def test_execute_exception(self, mock_client, mock_sleep):
-        ''' Test behavior when modbus function raises an Exception '''
+    def test_execute_retry_forever(self, mock_client, mock_sleep):
+        ''' Test that retries will continue forever '''
         blk = Modbus()
         self.configure_block(blk, {})
-        self.assertEqual(mock_client.call_count, 1)
-        # Simulate an exception in the modbus read
-        blk._client.read_coils.side_effect = Exception
-        blk.start()
-        # Read once and then retry. No output signal.
-        blk.process_signals([Signal()])
-        # Modbus function is called twice. Once for the retry.
-        self.assertEqual(blk._client.read_coils.call_count, 11)
-        # No signals are output on exceptions.
-        self.assertFalse(bool(len(self.signals['default'])))
-        # The retry created a new client before calling modbus function again.
-        self.assertEqual(mock_client.call_count, 11)
-        blk.stop()
-        self.assertEqual(mock_sleep.call_count, 10)
+        self.assertTrue(blk._before_retry(0))
+        # And even when we've passed the number of allowed retries
+        self.assertTrue(blk._before_retry(99))
 
     @patch('pymodbus3.client.sync.ModbusTcpClient')
     def test_execute_retry_success(self, mock_client):
@@ -136,32 +124,6 @@ class TestModbus(NIOBlockTestCase):
         # The retry created a new client before calling modbus function again.
         self.assertEqual(mock_client.call_count, 2)
         blk.stop()
-
-    # Mock sleep in order for the test to run fast
-    @patch('modbus.mixins.retry.retry.sleep')
-    @patch('pymodbus3.client.sync.ModbusTcpClient')
-    def test_retry_lock(self, mock_client, mock_sleep):
-        ''' Test that lock processes signals in order and drops on error '''
-        blk = Modbus()
-        self.configure_block(blk, {})
-        # Lower number of retries for this test
-        blk.num_retries = 1
-        # Simulate an exception in the modbus read
-        blk._client.read_coils.side_effect = Exception
-        blk.start()
-        # Read once and then retry. No output signal.
-        blk.process_signals([Signal()])
-        blk.process_signals([Signal()])
-        # Modbus function is called twice. Once for the retry of the first
-        # signal and 0 times for the second signal since the block failed
-        # on the first one.
-        self.assertEqual(blk._client.read_coils.call_count, 2)
-        # No signals are output on exceptions.
-        self.assertFalse(bool(len(self.signals['default'])))
-        # The retry created a new client before calling modbus function again.
-        self.assertEqual(mock_client.call_count, 2)
-        blk.stop()
-        self.assertEqual(mock_sleep.call_count, 1)
 
     def test_exception_detail_codes(self):
         ''' Test that each exception code sets exception_details '''

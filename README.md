@@ -3,7 +3,7 @@ Modbus
 
 Communicate with a device using Modbus.
 
-If a modbus function fails, retries will be attempted. When out of retries, the block goes into an Error state.
+If a modbus function fails, retries will be attempted.
 
 Properties
 ----------
@@ -50,7 +50,7 @@ ModbusRTU
 
 Communicate with a Modbus device over RTU Serial.
 
-If a modbus function fails, retries will be attempted. When out of retries, the block goes into an Error state.
+If a modbus function fails, retries will be attempted.
 
 Properties
 ----------

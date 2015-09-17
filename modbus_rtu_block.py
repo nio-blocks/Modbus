@@ -7,7 +7,7 @@ from nio.common.signal.status import BlockStatusSignal
 from nio.common.discovery import Discoverable, DiscoverableType
 from nio.metadata.properties import StringProperty, IntProperty, \
     ExpressionProperty, VersionProperty, SelectProperty, PropertyHolder
-from nio.modules.threading import spawn, Event, Lock
+from nio.modules.threading import spawn, Event, Lock, sleep
 from .mixins.retry.retry import Retry
 
 
@@ -81,6 +81,7 @@ class ModbusRTU(Retry, Block):
             return self._execute_with_retry(self._execute, params=params)
         except:
             # Execution failed even with retry
+            # Note: this should neveer happen because retries go forever
             self._logger.exception(
                 "Aborting retry and putting block in ERROR")
             status_signal = BlockStatusSignal(
@@ -136,10 +137,19 @@ class ModbusRTU(Retry, Block):
         return signal
 
     def _before_retry(self, retry_count, **kwargs):
-        do_retry = super()._before_retry(retry_count, **kwargs)
-        if do_retry:
-            self._connect()
-        return do_retry
+        if retry_count >= self.num_retries:
+            time_before_retry = 60
+            self._logger.error(
+                "Modbus function continues to fail; retrying in 60 seconds")
+        else:
+            time_before_retry = retry_count
+        self._logger.debug(
+            "Waiting {} seconds before retrying execute method".format(
+                time_before_retry))
+        sleep(time_before_retry)
+        self._connect()
+        # Return True to confirm that we should retry
+        return True
 
     def _address(self, signal):
         try:
