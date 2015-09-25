@@ -66,13 +66,13 @@ class ModbusRTU(Retry, Block):
         output = []
         for signal in signals:
             if self._num_locks >= self._max_locks:
-                self._logger.warning(
+                self._logger.debug(
                     "Skipping signal; max numbers of signals waiting")
                 continue
             self._num_locks += 1
             with self._process_lock:
                 if self._retry_failed:
-                    self._logger.info(
+                    self._logger.debug(
                         "Skipping signal since block is now in error")
                     return
                 else:
@@ -89,7 +89,7 @@ class ModbusRTU(Retry, Block):
             return self._execute_with_retry(self._execute, params=params)
         except:
             # Execution failed even with retry
-            # Note: this should neveer happen because retries go forever
+            # Note: this should never happen because retries go forever
             self._logger.exception(
                 "Aborting retry and putting block in ERROR")
             status_signal = BlockStatusSignal(
