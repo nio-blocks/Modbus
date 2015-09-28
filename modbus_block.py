@@ -8,7 +8,7 @@ from nio.common.signal.status import BlockStatusSignal
 from nio.common.discovery import Discoverable, DiscoverableType
 from nio.metadata.properties import StringProperty, IntProperty, \
     ExpressionProperty, VersionProperty, SelectProperty, PropertyHolder
-from nio.modules.threading import spawn, Event, Lock
+from nio.modules.threading import spawn, Event, Lock, sleep
 from .mixins.retry.retry import Retry
 
 
@@ -50,6 +50,8 @@ class Modbus(Retry, Block):
         self._client = None
         self._process_lock = Lock()
         self._retry_failed = False
+        self._num_locks = 0
+        self._max_locks = 5
 
     def configure(self, context):
         super().configure(context)
@@ -61,15 +63,21 @@ class Modbus(Retry, Block):
     def process_signals(self, signals, input_id='default'):
         output = []
         for signal in signals:
+            if self._num_locks >= self._max_locks:
+                self._logger.debug(
+                    "Skipping signal; max numbers of signals waiting")
+                continue
+            self._num_locks += 1
             with self._process_lock:
                 if self._retry_failed:
-                    self._logger.info(
+                    self._logger.debug(
                         "Skipping signal since block is now in error")
                     return
                 else:
                     output_signal = self._process_signal(signal)
                     if output_signal:
                         output.append(output_signal)
+            self._num_locks -= 1
         if output:
             self.notify_signals(output)
 
@@ -86,6 +94,7 @@ class Modbus(Retry, Block):
                 self._execute, modbus_function=modbus_function, params=params)
         except:
             # Execution failed even with retry
+            # Note: this should never happen because retries go forever
             self._logger.exception(
                 "Aborting retry and putting block in ERROR")
             status_signal = BlockStatusSignal(
@@ -115,10 +124,19 @@ class Modbus(Retry, Block):
             return signal
 
     def _before_retry(self, retry_count, **kwargs):
-        do_retry = super()._before_retry(retry_count, **kwargs)
-        if do_retry:
-            self._connect()
-        return do_retry
+        if retry_count >= self.num_retries:
+            time_before_retry = 60
+            self._logger.error(
+                "Modbus function continues to fail; retrying in 60 seconds")
+        else:
+            time_before_retry = retry_count
+        self._logger.debug(
+            "Waiting {} seconds before retrying execute method".format(
+                time_before_retry))
+        sleep(time_before_retry)
+        self._connect()
+        # Return True to confirm that we should retry
+        return True
 
     def _address(self, signal):
         try:
