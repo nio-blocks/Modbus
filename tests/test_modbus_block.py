@@ -1,18 +1,24 @@
 from collections import defaultdict
 from unittest import skipUnless
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from nio.util.support.block_test_case import NIOBlockTestCase
 from nio.common.signal.base import Signal
 
 
 pymodbus3_available = True
 try:
+    import pymodbus3
+except ImportError:
+    pymodbus3_available = False
+
+try:
     from ..modbus_block import Modbus
 except:
-    pymodbus3_available = False
+    pass
 
 
 class SampleResponse():
+
     def __init__(self, value='default'):
         self.value = value
 
@@ -94,7 +100,7 @@ class TestModbus(NIOBlockTestCase):
                          'are not allowed or do not exist in slave')
         blk.stop()
 
-    @patch('modbus.modbus_block.sleep')
+    @patch("{}.sleep".format(Modbus.__module__))
     @patch('pymodbus3.client.sync.ModbusTcpClient')
     def test_execute_retry_forever(self, mock_client, mock_sleep):
         ''' Test that retries will continue forever '''
@@ -129,6 +135,7 @@ class TestModbus(NIOBlockTestCase):
     def test_lock_counter(self, mock_client):
         ''' Test that the num_locks counter works '''
         blk = Modbus()
+
         def _process_signal(signal):
             self.assertEqual(blk._num_locks, 1)
             return signal
