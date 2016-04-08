@@ -66,7 +66,6 @@ class ModbusTCP(Retry, Block):
 
     def configure(self, context):
         super().configure(context)
-        self.num_retries = self.retry()
         # We don't need pymodbus3 to log for us. The block will handle that.
         logging.getLogger('pymodbus3').setLevel(logging.CRITICAL)
         self._connect()
@@ -80,14 +79,9 @@ class ModbusTCP(Retry, Block):
                 continue
             self._num_locks += 1
             with self._process_lock:
-                if self._retry_failed:
-                    self.logger.debug(
-                        "Skipping signal since block is now in error")
-                    return
-                else:
-                    output_signal = self._process_signal(signal)
-                    if output_signal:
-                        output.append(output_signal)
+                output_signal = self._process_signal(signal)
+                if output_signal:
+                    output.append(output_signal)
             self._num_locks -= 1
         if output:
             self.notify_signals(output)
