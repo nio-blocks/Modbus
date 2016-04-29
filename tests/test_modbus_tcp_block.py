@@ -39,7 +39,7 @@ class TestModbusTCP(NIOBlockTestCase):
         blk.start()
         # Read once and assert output
         blk.process_signals([Signal()])
-        blk._client.read_coils.assert_called_once_with(address=0)
+        blk._client.read_coils.assert_called_once_with(address=0, count=1)
         self.assertTrue(len(self.last_notified[DEFAULT_TERMINAL]))
         self.assertEqual(self.last_notified[DEFAULT_TERMINAL][0].value, 'default')
         blk.stop()

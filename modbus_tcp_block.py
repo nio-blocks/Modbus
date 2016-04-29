@@ -54,6 +54,8 @@ class ModbusTCP(Retry, Block):
     retry = IntProperty(title='Number of Retries before Error',
                         default=10,
                         visible=False)
+    count = IntProperty(title='Number of coils/registers to read',
+                        default=1)
 
     def __init__(self):
         super().__init__()
@@ -137,6 +139,8 @@ class ModbusTCP(Retry, Block):
                 return {'value': self.value(signal)}
             elif modbus_function in ['write_coils', 'write_registers']:
                 return {'values': self.value(signal)}
+            elif modbus_function.startswith('read'):
+                return {'count': self.count(signal)}
             else:
                 return {}
         except:
