@@ -166,3 +166,13 @@ class TestModbusRTU(NIOBlockTestCase):
         blk.process_signals([Signal()])
         self.assertEqual(len(self.signals['default']), 0)
         blk.stop()
+
+    @patch('minimalmodbus.Instrument')
+    def test_failed_close(self, mock_client):
+        blk = ModbusRTU()
+        blk._logger.warning = MagicMock()
+        blk._client = MagicMock()
+        blk._client.serial.close = MagicMock(side_effect=Exception)
+        self.assertEqual(blk._logger.warning.call_count, 0)
+        blk._close()
+        self.assertEqual(blk._logger.warning.call_count, 1)

@@ -154,10 +154,20 @@ class ModbusRTU(Retry, Block):
         self._logger.debug(
             "Waiting {} seconds before retrying execute method".format(
                 time_before_retry))
+        self._close()
         sleep(time_before_retry)
         self._connect()
         # Return True to confirm that we should retry
         return True
+
+    def _close(self):
+        """minimalmodbus needs some help re-connecting"""
+        try:
+            # Try to manually close the serial connection
+            self._client.serial.close()
+        except:
+            self._logger.warning(
+                "Failed to manually close serial connection", exc_info=True)
 
     def _address(self, signal):
         try:
