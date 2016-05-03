@@ -149,4 +149,14 @@ class ModbusRTU(Retry, Block):
 
     def before_retry(self, *args, **kwargs):
         ''' Reconnect before making retry query. '''
+        self._close()
         self._connect()
+
+    def _close(self):
+        """minimalmodbus needs some help re-connecting"""
+        try:
+            # Try to manually close the serial connection
+            self._client.serial.close()
+        except:
+            self.logger.warning(
+                "Failed to manually close serial connection", exc_info=True)
