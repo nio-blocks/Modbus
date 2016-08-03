@@ -153,7 +153,8 @@ class ModbusRTU(Retry, Block):
             return
         signal = Signal({
             'values': response,
-            'params': params
+            'params': params,
+            'slave': self.slave_address()
         })
         return signal
 

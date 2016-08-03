@@ -117,6 +117,7 @@ class ModbusTCP(Retry, Block):
         if result:
             signal = Signal(result.__dict__)
             signal.params = params
+            signal.slave = self.host()
             self._check_exceptions(signal)
             return signal
 
