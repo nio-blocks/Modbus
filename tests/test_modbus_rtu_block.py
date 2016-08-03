@@ -111,10 +111,12 @@ class TestModbusRTU(NIOBlockTestCase):
         blk = ModbusRTU()
         self.configure_block(blk, {})
         blk._backoff_strategy.retry_num = 0
-        self.assertTrue(blk._backoff_strategy.next_retry())
+        # self.assertTrue(blk._backoff_strategy.next_retry())
+        self.assertFalse(blk._backoff_strategy.wait_for_retry())
         # And even when we've passed the number of allowed retries
         blk._backoff_strategy.retry_num = 99
-        self.assertTrue(blk._backoff_strategy.next_retry())
+        # self.assertTrue(blk._backoff_strategy.next_retry())
+        self.assertFalse(blk._backoff_strategy.wait_for_retry())
 
     @patch('minimalmodbus.Instrument')
     def test_execute_retry_success(self, mock_client):
