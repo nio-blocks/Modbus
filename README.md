@@ -55,12 +55,12 @@ If a modbus function fails, retries will be attempted.
 Properties
 ----------
 -   **Serial Port Setup**:
- -   *Serial Port*: COM Port to open
- -   *Baud Rate*: Default 19200
- -   *Timeout*: Default 0.05
- -   *Byte Size*: Default 8
- -   *Stop Bits*: Default 1
- -   *Parity*: Default (N)one
+ -   **Serial Port**: COM Port to open
+ -   **Baud Rate**: Default 19200
+ -   **Timeout**: Default 0.05
+ -   **Byte Size**: Default 8
+ -   **Stop Bits**: Default 1
+ -   **Parity**: Default (N)one
 -   **slave_address**: Slave (unit) address of modbus device.
 -   **function_name**: Modbus function call to execute.
 -   **address**: The starting address to read from or write to.
