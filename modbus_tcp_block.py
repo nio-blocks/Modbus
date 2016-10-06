@@ -64,7 +64,11 @@ class ModbusTCP(Retry, Block):
         self._retry_failed = False
         self._num_locks = 0
         self._max_locks = 5
-        self._backoff_strategy = SleepBackoffStrategy(logger=self.logger)
+
+    def setup_backoff_strategy(self):
+        self.use_backoff_strategy(
+            SleepBackoffStrategy,
+            **(self.retry_options().get_options_dict()))
 
     def configure(self, context):
         super().configure(context)
