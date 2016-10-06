@@ -45,6 +45,27 @@ class TestModbusTCP(NIOBlockTestCase):
         blk.stop()
 
     @patch('pymodbus3.client.sync.ModbusTcpClient')
+    def test_enrich_signals_mixin(self, mock_client):
+        ''' Test that read_coils is called with default configuration '''
+        blk = ModbusTCP()
+        self.configure_block(blk, {"enrich": {"exclude_existing": False}})
+        self.assertEqual(mock_client.call_count, 1)
+        # Simulate some response from the modbus read
+        blk._client(blk.host()).read_coils.return_value = SampleResponse()
+        blk.start()
+        # Read once and assert output
+        blk.process_signals([Signal({"input": "signal"})])
+        blk._client(blk.host()).read_coils.assert_called_once_with(address=0, count=1)
+        self.assertTrue(len(self.last_notified[DEFAULT_TERMINAL]))
+        self.assertDictEqual(
+            self.last_notified[DEFAULT_TERMINAL][0].to_dict(), {
+                "params": {"address": 0, "count": 1},
+                "value": "default",
+                "input": "signal",
+            })
+        blk.stop()
+
+    @patch('pymodbus3.client.sync.ModbusTcpClient')
     def test_multiple_hosts(self, mock_client):
         ''' Test that read_coils is called for each client'''
         blk = ModbusTCP()
