@@ -12,6 +12,7 @@ from nio.properties import IntProperty, Property, VersionProperty, \
 from nio.util.threading.spawn import spawn
 from nio.block.mixins.retry.retry import Retry
 from nio.block.mixins.retry.strategy import BackoffStrategy
+from nio.block.mixins.enrich.enrich_signals import EnrichSignals
 
 
 class SleepBackoffStrategy(BackoffStrategy):
@@ -36,7 +37,7 @@ class FunctionName(Enum):
 
 
 @discoverable
-class ModbusTCP(Retry, Block):
+class ModbusTCP(EnrichSignals, Retry, Block):
 
     """ Communicate with a device using Modbus over TCP.
 
@@ -147,8 +148,9 @@ class ModbusTCP(Retry, Block):
                          modbus_function)(**params)
         self.logger.debug('Modbus function returned: {}'.format(result))
         if result:
-            signal = Signal(result.__dict__)
-            signal.params = params
+            results = result.__dict__
+            results["params"] = params
+            signal = self.get_output_signal(results, signal)
             self._check_exceptions(signal)
             return signal
 
