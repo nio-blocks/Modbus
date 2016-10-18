@@ -64,7 +64,7 @@ class ModbusRTU(Retry, Block):
     retry = IntProperty(title='Number of Retries before Error',
                         default=10,
                         visible=False)
-    portconfig = ObjectProperty(PortConfig,
+    port_config = ObjectProperty(PortConfig,
                                 title="Serial Port Setup",
                                 default=PortConfig())
 
@@ -105,12 +105,12 @@ class ModbusRTU(Retry, Block):
 
     def _connect(self):
         self.logger.debug('Connecting to modbus')
-        minimalmodbus.BAUDRATE = self.portconfig().baudrate()
-        minimalmodbus.PARITY = self.portconfig().parity()
-        minimalmodbus.BYTESIZE = self.portconfig().bytesize()
-        minimalmodbus.STOPBITS = self.portconfig().stopbits()
-        minimalmodbus.TIMEOUT = float(self.portconfig().timeout())
-        self._client = minimalmodbus.Instrument(self.portconfig().port(),
+        minimalmodbus.BAUDRATE = self.port_config().baudrate()
+        minimalmodbus.PARITY = self.port_config().parity()
+        minimalmodbus.BYTESIZE = self.port_config().bytesize()
+        minimalmodbus.STOPBITS = self.port_config().stopbits()
+        minimalmodbus.TIMEOUT = float(self.port_config().timeout())
+        self._client = minimalmodbus.Instrument(self.port_config().port(),
                                                 self.slave_address())
         self.logger.debug(self._client)
         self.logger.debug('Succesfully connected to modbus')
