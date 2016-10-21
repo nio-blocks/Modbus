@@ -7,7 +7,7 @@ from nio.block.mixins.retry.retry import Retry
 from nio.signal.base import Signal
 from nio.util.discovery import discoverable
 from nio.properties import StringProperty, IntProperty, \
-    Property, VersionProperty, SelectProperty, PropertyHolder
+    Property, VersionProperty, SelectProperty, PropertyHolder, ObjectProperty
 from nio.util.threading.spawn import spawn
 from nio.block.mixins.retry.strategy import BackoffStrategy
 
@@ -33,6 +33,15 @@ class FunctionName(Enum):
     write_multiple_holding_registers = 16
 
 
+class PortConfig(PropertyHolder):
+    baudrate = IntProperty(title='Baud Rate', default=19200)
+    parity = StringProperty(title='Parity (N, E, O)', default='N')
+    bytesize = IntProperty(title='Byte Size', default=8)
+    stopbits = IntProperty(title='Stop Bits', default=1)
+    timeout = Property(title='Timeout', default='0.05')
+    port = StringProperty(title='Serial Port', default='/dev/ttyUSB0')
+
+
 @discoverable
 class ModbusRTU(Retry, Block):
 
@@ -44,7 +53,6 @@ class ModbusRTU(Retry, Block):
     """
 
     version = VersionProperty(version='0.1.0')
-    port = StringProperty(title='Serial Port', default='/dev/ttyUSB0')
     slave_address = IntProperty(title='Slave Address', default=1)
     function_name = SelectProperty(FunctionName,
                                    title='Function Name',
@@ -56,6 +64,9 @@ class ModbusRTU(Retry, Block):
     retry = IntProperty(title='Number of Retries before Error',
                         default=10,
                         visible=False)
+    port_config = ObjectProperty(PortConfig,
+                                title="Serial Port Setup",
+                                default=PortConfig())
 
     def __init__(self):
         super().__init__()
@@ -98,8 +109,14 @@ class ModbusRTU(Retry, Block):
 
     def _connect(self):
         self.logger.debug('Connecting to modbus')
-        self._client = minimalmodbus.Instrument(self.port(),
+        minimalmodbus.BAUDRATE = self.port_config().baudrate()
+        minimalmodbus.PARITY = self.port_config().parity()
+        minimalmodbus.BYTESIZE = self.port_config().bytesize()
+        minimalmodbus.STOPBITS = self.port_config().stopbits()
+        minimalmodbus.TIMEOUT = float(self.port_config().timeout())
+        self._client = minimalmodbus.Instrument(self.port_config().port(),
                                                 self.slave_address())
+        self.logger.debug(self._client)
         self.logger.debug('Succesfully connected to modbus')
 
     def _execute(self, params, retry=False):
