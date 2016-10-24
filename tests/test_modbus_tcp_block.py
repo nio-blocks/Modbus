@@ -62,6 +62,7 @@ class TestModbusTCP(NIOBlockTestCase):
                 "params": {"address": 0, "count": 1},
                 "value": "default",
                 "input": "signal",
+                "slave": blk.host()
             })
         blk.stop()
 
