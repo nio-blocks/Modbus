@@ -35,13 +35,61 @@ class TestModbusTCP(NIOBlockTestCase):
         self.configure_block(blk, {})
         self.assertEqual(mock_client.call_count, 1)
         # Simulate some response from the modbus read
-        blk._client.read_coils.return_value = SampleResponse()
+        blk._client(blk.host()).read_coils.return_value = SampleResponse()
         blk.start()
         # Read once and assert output
         blk.process_signals([Signal()])
-        blk._client.read_coils.assert_called_once_with(address=0, count=1)
+        blk._client(blk.host()).read_coils.assert_called_once_with(address=0, count=1)
         self.assertTrue(len(self.last_notified[DEFAULT_TERMINAL]))
         self.assertEqual(self.last_notified[DEFAULT_TERMINAL][0].value, 'default')
+        blk.stop()
+
+    @patch('pymodbus3.client.sync.ModbusTcpClient')
+    def test_enrich_signals_mixin(self, mock_client):
+        ''' Test that read_coils is called with default configuration '''
+        blk = ModbusTCP()
+        self.configure_block(blk, {"enrich": {"exclude_existing": False}})
+        self.assertEqual(mock_client.call_count, 1)
+        # Simulate some response from the modbus read
+        blk._client(blk.host()).read_coils.return_value = SampleResponse()
+        blk.start()
+        # Read once and assert output
+        blk.process_signals([Signal({"input": "signal"})])
+        blk._client(blk.host()).read_coils.assert_called_once_with(address=0, count=1)
+        self.assertTrue(len(self.last_notified[DEFAULT_TERMINAL]))
+        self.assertDictEqual(
+            self.last_notified[DEFAULT_TERMINAL][0].to_dict(), {
+                "params": {"address": 0, "count": 1},
+                "value": "default",
+                "input": "signal",
+            })
+        blk.stop()
+
+    @patch('pymodbus3.client.sync.ModbusTcpClient')
+    def test_multiple_hosts(self, mock_client):
+        ''' Test that read_coils is called for each client'''
+        blk = ModbusTCP()
+        self.configure_block(blk, {"host": "{{ $host }}"})
+        # Initial client connect is skipped since host relies on signal
+        self.assertEqual(mock_client.call_count, 0)
+        # Simulate some response from the modbus read
+        mock_client.return_value.read_coils.side_effect = \
+            [SampleResponse("1"), SampleResponse("2")]
+        blk.start()
+        self.assertEqual(mock_client.call_count, 0)
+        # Connect and read from first client
+        signal1 = Signal({"host": "host1"})
+        blk.process_signals([signal1])
+        blk._client(blk.host(signal1)).read_coils.assert_called_once_with(address=0, count=1)
+        self.assertEqual(mock_client.call_count, 1)
+        # Connect and read from second client
+        signal2 = Signal({"host": "host2"})
+        blk.process_signals([signal2])
+        self.assertEqual(mock_client.call_count, 2)
+        # Check block output
+        self.assertEqual(len(self.last_notified[DEFAULT_TERMINAL]), 2)
+        self.assertEqual(self.last_notified[DEFAULT_TERMINAL][0].value, '1')
+        self.assertEqual(self.last_notified[DEFAULT_TERMINAL][1].value, '2')
         blk.stop()
 
     @patch('pymodbus3.client.sync.ModbusTcpClient')
@@ -51,12 +99,12 @@ class TestModbusTCP(NIOBlockTestCase):
         self.configure_block(blk, {'function_name': 'write_coil'})
         self.assertEqual(mock_client.call_count, 1)
         # Simulate some response from the modbus read
-        blk._client.write_coil.return_value = SampleResponse()
+        blk._client(blk.host()).write_coil.return_value = SampleResponse()
         blk.start()
         # Read once and assert output
         blk.process_signals([Signal()])
-        self.assertEqual(blk._client.write_coil.call_count, 1)
-        blk._client.write_coil.assert_called_once_with(address=0, value=True)
+        self.assertEqual(blk._client(blk.host()).write_coil.call_count, 1)
+        blk._client(blk.host()).write_coil.assert_called_once_with(address=0, value=True)
         self.assertTrue(len(self.last_notified[DEFAULT_TERMINAL]))
         self.assertEqual(self.last_notified[DEFAULT_TERMINAL][0].value, 'default')
         blk.stop()
@@ -68,12 +116,12 @@ class TestModbusTCP(NIOBlockTestCase):
         self.configure_block(blk, {'function_name': 'write_multiple_coils'})
         self.assertEqual(mock_client.call_count, 1)
         # Simulate some response from the modbus read
-        blk._client.write_coils.return_value = SampleResponse()
+        blk._client(blk.host()).write_coils.return_value = SampleResponse()
         blk.start()
         # Read once and assert output
         blk.process_signals([Signal()])
-        self.assertEqual(blk._client.write_coils.call_count, 1)
-        blk._client.write_coils.assert_called_once_with(address=0, values=True)
+        self.assertEqual(blk._client(blk.host()).write_coils.call_count, 1)
+        blk._client(blk.host()).write_coils.assert_called_once_with(address=0, values=True)
         self.assertTrue(len(self.last_notified[DEFAULT_TERMINAL]))
         self.assertEqual(self.last_notified[DEFAULT_TERMINAL][0].value, 'default')
         blk.stop()
@@ -86,7 +134,7 @@ class TestModbusTCP(NIOBlockTestCase):
         # Simulate some exception response from the modbus read
         resp = SampleResponse()
         resp.exception_code = 2
-        blk._client.read_coils.return_value = resp
+        blk._client(blk.host()).read_coils.return_value = resp
         blk.start()
         # Read once and assert output
         blk.process_signals([Signal()])
@@ -114,13 +162,13 @@ class TestModbusTCP(NIOBlockTestCase):
         self.configure_block(blk, {})
         self.assertEqual(mock_client.call_count, 1)
         # Simulate an exception and then a success.
-        blk._client.read_coils.side_effect = \
+        blk._client(blk.host()).read_coils.side_effect = \
             [Exception, SampleResponse()]
         blk.start()
         # Read once and then retry.
         blk.process_signals([Signal()])
         # Modbus function is called twice. Once for the retry.
-        self.assertEqual(blk._client.read_coils.call_count, 2)
+        self.assertEqual(blk._client(blk.host()).read_coils.call_count, 2)
         # A signal is output because of successful retry.
         self.assertTrue(bool(len(self.last_notified[DEFAULT_TERMINAL])))
         self.assertEqual(self.last_notified[DEFAULT_TERMINAL][0].value, 'default')
