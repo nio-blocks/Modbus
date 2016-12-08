@@ -107,6 +107,7 @@ class ModbusTCP(EnrichSignals, Retry, Block):
         address = self._address(signal)
         params = self._prepare_params(modbus_function, signal)
         params['address'] = address
+        signal.slave = self.host(signal)
         if modbus_function is None or address is None or params is None:
             # A warning method has already been logged if we get here
             return

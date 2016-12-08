@@ -38,6 +38,7 @@ Notifies a signal for each frame read from Modbus. Attributes on signals include
     - `address`: Starting address.
     - `value` (optional): Value on single write.
     - `values` (optional): Values on multiple write.
+  - `slave` TCP host address
   - `bits` (optional): List of boolean values when reading coils or discrete inputs.
   - `register`s (optional): List of int values when reading registers.
   - `exception_code` (int, optional): Error code when function call is invalid.
@@ -92,5 +93,6 @@ Notifies a signal for each frame read from Modbus. Attributes on signals include
     - `function_code`: Modbus function code.
     - `value` (optional): Value on write.
   - `values` (optional): List of int values when reading registers.
+  - `slave` slave_address
   - `exception_code` (int, optional): Error code when function call is invalid.
   - `exception_details` (str, optional): Error details when function call is invalid.
