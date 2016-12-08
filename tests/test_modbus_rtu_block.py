@@ -1,26 +1,21 @@
 from collections import defaultdict
 from unittest import skipUnless
 from unittest.mock import MagicMock, patch
-from nio.util.support.block_test_case import NIOBlockTestCase
-from nio.common.signal.base import Signal
+from nio.block.terminals import DEFAULT_TERMINAL
+from nio.testing.block_test_case import NIOBlockTestCase
+from nio.signal.base import Signal
 
 
 minimalmodbus_available = True
 try:
     from ..modbus_rtu_block import ModbusRTU
-except:
+except Exception as e:
+    print('Error importing ModbusRTU block: {}'.format(e))
     minimalmodbus_available = False
 
 
 @skipUnless(minimalmodbus_available, 'minimalmodbus is not available!!')
 class TestModbusRTU(NIOBlockTestCase):
-
-    def setUp(self):
-        super().setUp()
-        self.signals = defaultdict(list)
-
-    def signals_notified(self, signals, output_id):
-        self.signals[output_id].extend(signals)
 
     @patch('minimalmodbus.Instrument')
     def test_defaults(self, mock_client):
@@ -36,8 +31,8 @@ class TestModbusRTU(NIOBlockTestCase):
         blk._client.read_registers.assert_called_once_with(registeraddress=0,
                                                            functioncode=4,
                                                            numberOfRegisters=1)
-        self.assertTrue(len(self.signals['default']))
-        self.assertEqual(self.signals['default'][0].values, [42])
+        self.assertTrue(len(self.last_notified[DEFAULT_TERMINAL]))
+        self.assertEqual(self.last_notified[DEFAULT_TERMINAL][0].values, [42])
         blk.stop()
 
     @patch('minimalmodbus.Instrument')
@@ -56,8 +51,8 @@ class TestModbusRTU(NIOBlockTestCase):
         blk._client.write_bit.assert_called_once_with(registeraddress=1,
                                                       functioncode=5,
                                                       value=False)
-        self.assertTrue(len(self.signals['default']))
-        self.assertEqual(self.signals['default'][0].values, [42])
+        self.assertTrue(len(self.last_notified[DEFAULT_TERMINAL]))
+        self.assertEqual(self.last_notified[DEFAULT_TERMINAL][0].values, [42])
         blk.stop()
 
     @patch('minimalmodbus.Instrument')
@@ -76,8 +71,8 @@ class TestModbusRTU(NIOBlockTestCase):
         blk._client.read_registers.assert_called_once_with(registeraddress=1,
                                                            functioncode=3,
                                                            numberOfRegisters=3)
-        self.assertTrue(len(self.signals['default']))
-        self.assertEqual(self.signals['default'][0].values, [42, 43, 44])
+        self.assertTrue(len(self.last_notified[DEFAULT_TERMINAL]))
+        self.assertEqual(self.last_notified[DEFAULT_TERMINAL][0].values, [42, 43, 44])
         blk.stop()
 
     @patch('minimalmodbus.Instrument')
@@ -90,9 +85,10 @@ class TestModbusRTU(NIOBlockTestCase):
         })
         self.assertEqual(mock_client.call_count, 1)
         blk.start()
-        blk.process_signals([Signal()])
+        with self.assertRaises(Exception):
+            blk.process_signals([Signal()])
         self.assertEqual(blk._client.write_bit.call_count, 0)
-        self.assertFalse(len(self.signals['default']))
+        self.assertFalse(len(self.last_notified[DEFAULT_TERMINAL]))
         blk.stop()
 
     @patch('minimalmodbus.Instrument')
@@ -105,18 +101,20 @@ class TestModbusRTU(NIOBlockTestCase):
         blk.start()
         blk.process_signals([Signal()])
         self.assertEqual(blk._client.read_registers.call_count, 1)
-        self.assertFalse(len(self.signals['default']))
+        self.assertFalse(len(self.last_notified[DEFAULT_TERMINAL]))
         blk.stop()
 
-    @patch('modbus.modbus_rtu_block.sleep')
+    @patch("{}.sleep".format(ModbusRTU.__module__))
     @patch('minimalmodbus.Instrument')
     def test_execute_retry_forever(self, mock_client, mock_sleep):
         ''' Test that retries will continue forever '''
         blk = ModbusRTU()
         self.configure_block(blk, {})
-        self.assertTrue(blk._before_retry(0))
+        blk._backoff_strategy.retry_num = 0
+        self.assertFalse(blk._backoff_strategy.wait_for_retry())
         # And even when we've passed the number of allowed retries
-        self.assertTrue(blk._before_retry(99))
+        blk._backoff_strategy.retry_num = 99
+        self.assertFalse(blk._backoff_strategy.wait_for_retry())
 
     @patch('minimalmodbus.Instrument')
     def test_execute_retry_success(self, mock_client):
@@ -133,8 +131,8 @@ class TestModbusRTU(NIOBlockTestCase):
         # Modbus function is called twice. Once for the retry.
         self.assertEqual(blk._client.read_registers.call_count, 2)
         # A signal is output because of successful retry.
-        self.assertTrue(bool(len(self.signals['default'])))
-        self.assertEqual(self.signals['default'][0].values, [42])
+        self.assertTrue(bool(len(self.last_notified[DEFAULT_TERMINAL])))
+        self.assertEqual(self.last_notified[DEFAULT_TERMINAL][0].values, [42])
         # The retry created a new client before calling modbus function again.
         self.assertEqual(mock_client.call_count, 2)
         blk.stop()
@@ -152,7 +150,7 @@ class TestModbusRTU(NIOBlockTestCase):
         self.assertEqual(blk._num_locks, 0)
         blk.process_signals([Signal()])
         self.assertEqual(blk._num_locks, 0)
-        self.assertEqual(len(self.signals['default']), 1)
+        self.assertEqual(len(self.last_notified[DEFAULT_TERMINAL]), 1)
         blk.stop()
 
     @patch('minimalmodbus.Instrument')
@@ -164,15 +162,15 @@ class TestModbusRTU(NIOBlockTestCase):
         blk._num_locks = blk._max_locks
         blk.start()
         blk.process_signals([Signal()])
-        self.assertEqual(len(self.signals['default']), 0)
+        self.assertEqual(len(self.last_notified[DEFAULT_TERMINAL]), 0)
         blk.stop()
 
     @patch('minimalmodbus.Instrument')
     def test_failed_close(self, mock_client):
         blk = ModbusRTU()
-        blk._logger.warning = MagicMock()
+        blk.logger.warning = MagicMock()
         blk._client = MagicMock()
         blk._client.serial.close = MagicMock(side_effect=Exception)
-        self.assertEqual(blk._logger.warning.call_count, 0)
+        self.assertEqual(blk.logger.warning.call_count, 0)
         blk._close()
-        self.assertEqual(blk._logger.warning.call_count, 1)
+        self.assertEqual(blk.logger.warning.call_count, 1)

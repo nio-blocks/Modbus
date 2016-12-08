@@ -34,14 +34,14 @@ Output
 
 Notifies a signal for each frame read from Modbus. Attributes on signals include (but are not limited to) the following:
 
-  - params: Dictionary of parameters passed to function call.
-    - address: Starting address.
-    - value (optional): Value on single write.
-    - values (optional): Values on multiple write.
-  - bits (optional): List of boolean values when reading coils or discrete inputs.
-  - registers (optional): List of int values when reading registers.
-  - exception_code (int, optional): Error code when function call is invalid.
-  - exception_details (str, optional): Error details when function call is invalid.
+  - `params`: Dictionary of parameters passed to function call.
+    - `address`: Starting address.
+    - `value` (optional): Value on single write.
+    - `values` (optional): Values on multiple write.
+  - `bits` (optional): List of boolean values when reading coils or discrete inputs.
+  - `register`s (optional): List of int values when reading registers.
+  - `exception_code` (int, optional): Error code when function call is invalid.
+  - `exception_details` (str, optional): Error details when function call is invalid.
 
 ------------------------------------------------------------------------------
 
@@ -54,8 +54,13 @@ If a modbus function fails, retries will be attempted.
 
 Properties
 ----------
-
--   **port**: Serial port.
+-   **Serial Port Setup**:
+ -   **Serial Port**: COM Port to open
+ -   **Baud Rate**: Default 19200
+ -   **Timeout**: Default 0.05
+ -   **Byte Size**: Default 8
+ -   **Stop Bits**: Default 1
+ -   **Parity**: Default (N)one
 -   **slave_address**: Slave (unit) address of modbus device.
 -   **function_name**: Modbus function call to execute.
 -   **address**: The starting address to read from or write to.
@@ -82,10 +87,10 @@ Output
 
 Notifies a signal for each frame read from Modbus. Attributes on signals include (but are not limited to) the following:
 
-  - params: Dictionary of parameters passed to function call.
-    - registereddress: Starting address.
-    - functioncode: Modbus function code.
-    - value (optional): Value on write.
-  - values (optional): List of int values when reading registers.
-  - exception_code (int, optional): Error code when function call is invalid.
-  - exception_details (str, optional): Error details when function call is invalid.
+  - `params`: Dictionary of parameters passed to function call.
+    - `register_address`: Starting address.
+    - `function_code`: Modbus function code.
+    - `value` (optional): Value on write.
+  - `values` (optional): List of int values when reading registers.
+  - `exception_code` (int, optional): Error code when function call is invalid.
+  - `exception_details` (str, optional): Error details when function call is invalid.

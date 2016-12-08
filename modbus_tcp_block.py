@@ -1,15 +1,28 @@
-from enum import Enum
 import logging
 import pymodbus3.client.sync
-from nio.common.block.base import Block
-from nio.common.block.controller import BlockStatus
-from nio.common.signal.base import Signal
-from nio.common.signal.status import BlockStatusSignal
-from nio.common.discovery import Discoverable, DiscoverableType
-from nio.metadata.properties import StringProperty, IntProperty, \
-    ExpressionProperty, VersionProperty, SelectProperty, PropertyHolder
-from nio.modules.threading import spawn, Event, Lock, sleep
-from .mixins.retry.retry import Retry
+from collections import defaultdict
+from enum import Enum
+from threading import Event, Lock
+from time import sleep
+from nio.block.base import Block
+from nio.signal.base import Signal
+from nio.util.discovery import discoverable
+from nio.properties import IntProperty, Property, VersionProperty, \
+    SelectProperty, PropertyHolder
+from nio.util.threading.spawn import spawn
+from nio.block.mixins.retry.retry import Retry
+from nio.block.mixins.retry.strategy import BackoffStrategy
+from nio.block.mixins.enrich.enrich_signals import EnrichSignals
+
+
+class SleepBackoffStrategy(BackoffStrategy):
+
+    def next_retry(self):
+        self.logger.debug(
+            "Waiting {} seconds before retrying execute method".format(
+                self.retry_num))
+        sleep(self.retry_num)
+        return True
 
 
 class FunctionName(Enum):
@@ -23,126 +36,129 @@ class FunctionName(Enum):
     write_multiple_holding_registers = 'write_registers'
 
 
-@Discoverable(DiscoverableType.block)
-class Modbus(Retry, Block):
+@discoverable
+class ModbusTCP(EnrichSignals, Retry, Block):
 
-    """ Communicate with a device using Modbus.
+    """ Communicate with a device using Modbus over TCP.
 
     Parameters:
         host (str): The host to connect to.
         port (int): The modbus port to connect to.
     """
 
-    version = VersionProperty(version='0.1.1')
-    host = StringProperty(title='Host', default='127.0.0.1')
-    port = IntProperty(title='Port', visible=False)
+    version = VersionProperty(version='0.1.0')
+    host = Property(title='Host', default='127.0.0.1')
     function_name = SelectProperty(FunctionName,
                                    title='Function Name',
                                    default=FunctionName.read_coils)
-    address = ExpressionProperty(title='Starting Address', default='0')
-    value = ExpressionProperty(title='Write Value(s)', default='{{ True }}')
+    address = Property(title='Starting Address', default='0')
+    value = Property(title='Write Value(s)', default='{{ True }}')
     retry = IntProperty(title='Number of Retries before Error',
                         default=10,
                         visible=False)
+    count = IntProperty(title='Number of coils/registers to read',
+                        default=1)
 
     def __init__(self):
         super().__init__()
-        self._client = None
+        self._clients = {}
         self._process_lock = Lock()
         self._retry_failed = False
         self._num_locks = 0
         self._max_locks = 5
 
+    def setup_backoff_strategy(self):
+        self.use_backoff_strategy(
+            SleepBackoffStrategy,
+            **(self.retry_options().get_options_dict()))
+
     def configure(self, context):
         super().configure(context)
-        self.num_retries = self.retry
         # We don't need pymodbus3 to log for us. The block will handle that.
         logging.getLogger('pymodbus3').setLevel(logging.CRITICAL)
-        self._connect()
+        # Make sure host is able to evaluate without a signal before connecting
+        try:
+            host = self.host()
+        except:
+            # host uses an expression so don't connect yet
+            self.logger.debug(
+                "Host is an expression that uses a signal so don't connect")
+            host = None
+        self._connect(host)
 
     def process_signals(self, signals, input_id='default'):
         output = []
         for signal in signals:
             if self._num_locks >= self._max_locks:
-                self._logger.debug(
+                self.logger.debug(
                     "Skipping signal; max numbers of signals waiting")
                 continue
             self._num_locks += 1
             with self._process_lock:
-                if self._retry_failed:
-                    self._logger.debug(
-                        "Skipping signal since block is now in error")
-                    return
-                else:
-                    output_signal = self._process_signal(signal)
-                    if output_signal:
-                        output.append(output_signal)
+                output_signal = self._process_signal(signal)
+                if output_signal:
+                    output.append(output_signal)
             self._num_locks -= 1
         if output:
             self.notify_signals(output)
 
     def _process_signal(self, signal):
-        modbus_function = self.function_name.value
+        modbus_function = self.function_name().value
         address = self._address(signal)
         params = self._prepare_params(modbus_function, signal)
         params['address'] = address
         if modbus_function is None or address is None or params is None:
             # A warning method has already been logged if we get here
             return
-        try:
-            return self._execute_with_retry(
-                self._execute, modbus_function=modbus_function, params=params)
-        except:
-            # Execution failed even with retry
-            # Note: this should never happen because retries go forever
-            self._logger.exception(
-                "Aborting retry and putting block in ERROR")
-            status_signal = BlockStatusSignal(
-                BlockStatus.error, 'Out of retries.')
-            self.notify_management_signal(status_signal)
-            self._retry_failed = True
+        return self.execute_with_retry(
+            self._execute,
+            signal=signal,
+            modbus_function=modbus_function,
+            params=params)
 
     def stop(self):
-        self._client.close()
+        for client in self._clients:
+            self._clients[client].close()
         super().stop()
 
-    def _connect(self):
-        self._logger.debug('Connecting to modbus')
-        self._client = pymodbus3.client.sync.ModbusTcpClient(self.host)
-        self._logger.debug('Succesfully connected to modbus')
+    def _connect(self, host=None):
+        # If host is specifed connect to that, else reconnect to existing hosts
+        if host:
+            self._connect_to_host(host)
+        else:
+            for host in self._clients:
+                self._connect_to_host(host)
 
-    def _execute(self, modbus_function, params):
-        self._logger.debug("Waiting for lock to execute Modbus function '{}' "
-                           'with params: {}'
-                           .format(modbus_function, params))
-        result = getattr(self._client, modbus_function)(**params)
-        self._logger.debug('Modbus function returned: {}'.format(result))
+    def _connect_to_host(self, host):
+        self.logger.debug('Connecting to modbus host: {}'.format(host))
+        self._clients[host] = pymodbus3.client.sync.ModbusTcpClient(host)
+        self.logger.debug(
+            'Succesfully connected to modbus host: {}'.format(host))
+
+    def _client(self, host):
+        if host not in self._clients:
+            self._connect(host)
+        return self._clients[host]
+
+    def _execute(self, signal, modbus_function, params):
+        self.logger.debug(
+            "Execute Modbus function '{}' with params: {}".format(
+                modbus_function, params))
+        result = getattr(self._client(self.host(signal)),
+                         modbus_function)(**params)
+        self.logger.debug('Modbus function returned: {}'.format(result))
         if result:
-            signal = Signal(result.__dict__)
-            signal.params = params
+            results = result.__dict__
+            results["params"] = params
+            signal = self.get_output_signal(results, signal)
             self._check_exceptions(signal)
             return signal
-
-    def _before_retry(self, retry_count, **kwargs):
-        if retry_count >= self.num_retries:
-            time_before_retry = 60
-            self._logger.error(
-                "Modbus function continues to fail; retrying in 60 seconds")
-        else:
-            time_before_retry = retry_count
-        self._logger.debug(
-            "Waiting {} seconds before retrying execute method".format(
-                time_before_retry))
-        sleep(time_before_retry)
-        self._connect()
-        # Return True to confirm that we should retry
-        return True
 
     def _address(self, signal):
         try:
             return int(self.address(signal))
         except:
-            self._logger.warning('Address needs to evaluate to an integer',
+            self.logger.warning('Address needs to evaluate to an integer',
                                  exc_info=True)
 
     def _prepare_params(self, modbus_function, signal):
@@ -151,11 +167,17 @@ class Modbus(Retry, Block):
                 return {'value': self.value(signal)}
             elif modbus_function in ['write_coils', 'write_registers']:
                 return {'values': self.value(signal)}
+            elif modbus_function.startswith('read'):
+                return {'count': self.count(signal)}
             else:
                 return {}
         except:
-            self._logger.warning('Failed to prepare function params',
+            self.logger.warning('Failed to prepare function params',
                                  exc_info=True)
+
+    def before_retry(self, *args, **kwargs):
+        ''' Reconnect before making retry query. '''
+        self._connect()
 
     def _check_exceptions(self, signal):
         ''' Add exception details if the response has an exception code '''
