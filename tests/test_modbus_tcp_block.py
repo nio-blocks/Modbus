@@ -39,7 +39,8 @@ class TestModbusTCP(NIOBlockTestCase):
         blk.start()
         # Read once and assert output
         blk.process_signals([Signal()])
-        blk._client(blk.host()).read_coils.assert_called_once_with(address=0, count=1)
+        blk._client(blk.host()).read_coils.assert_called_once_with(
+            address=0, count=1, unit=1)
         self.assertTrue(len(self.last_notified[DEFAULT_TERMINAL]))
         self.assertEqual(self.last_notified[DEFAULT_TERMINAL][0].value, 'default')
         blk.stop()
@@ -55,11 +56,12 @@ class TestModbusTCP(NIOBlockTestCase):
         blk.start()
         # Read once and assert output
         blk.process_signals([Signal({"input": "signal"})])
-        blk._client(blk.host()).read_coils.assert_called_once_with(address=0, count=1)
+        blk._client(blk.host()).read_coils.assert_called_once_with(
+            address=0, count=1, unit=1)
         self.assertTrue(len(self.last_notified[DEFAULT_TERMINAL]))
         self.assertDictEqual(
             self.last_notified[DEFAULT_TERMINAL][0].to_dict(), {
-                "params": {"address": 0, "count": 1},
+                "params": {"address": 0, "count": 1, "unit": 1},
                 "value": "default",
                 "input": "signal",
             })
@@ -80,7 +82,8 @@ class TestModbusTCP(NIOBlockTestCase):
         # Connect and read from first client
         signal1 = Signal({"host": "host1"})
         blk.process_signals([signal1])
-        blk._client(blk.host(signal1)).read_coils.assert_called_once_with(address=0, count=1)
+        blk._client(blk.host(signal1)).read_coils.assert_called_once_with(
+            address=0, count=1, unit=1)
         self.assertEqual(mock_client.call_count, 1)
         # Connect and read from second client
         signal2 = Signal({"host": "host2"})
@@ -104,7 +107,8 @@ class TestModbusTCP(NIOBlockTestCase):
         # Read once and assert output
         blk.process_signals([Signal()])
         self.assertEqual(blk._client(blk.host()).write_coil.call_count, 1)
-        blk._client(blk.host()).write_coil.assert_called_once_with(address=0, value=True)
+        blk._client(blk.host()).write_coil.assert_called_once_with(
+            address=0, value=True, unit=1)
         self.assertTrue(len(self.last_notified[DEFAULT_TERMINAL]))
         self.assertEqual(self.last_notified[DEFAULT_TERMINAL][0].value, 'default')
         blk.stop()
@@ -121,7 +125,8 @@ class TestModbusTCP(NIOBlockTestCase):
         # Read once and assert output
         blk.process_signals([Signal()])
         self.assertEqual(blk._client(blk.host()).write_coils.call_count, 1)
-        blk._client(blk.host()).write_coils.assert_called_once_with(address=0, values=True)
+        blk._client(blk.host()).write_coils.assert_called_once_with(
+            address=0, values=True, unit=1)
         self.assertTrue(len(self.last_notified[DEFAULT_TERMINAL]))
         self.assertEqual(self.last_notified[DEFAULT_TERMINAL][0].value, 'default')
         blk.stop()

@@ -51,13 +51,14 @@ class ModbusTCP(EnrichSignals, Retry, Block):
     function_name = SelectProperty(FunctionName,
                                    title='Function Name',
                                    default=FunctionName.read_coils)
-    address = Property(title='Starting Address', default='0')
+    address = IntProperty(title='Starting Address', default=0)
     value = Property(title='Write Value(s)', default='{{ True }}')
     retry = IntProperty(title='Number of Retries before Error',
                         default=10,
                         visible=False)
     count = IntProperty(title='Number of coils/registers to read',
                         default=1)
+    unit_id = IntProperty(title='Unit ID', default=1)
 
     def __init__(self):
         super().__init__()
@@ -104,10 +105,12 @@ class ModbusTCP(EnrichSignals, Retry, Block):
 
     def _process_signal(self, signal):
         modbus_function = self.function_name().value
-        address = self._address(signal)
         params = self._prepare_params(modbus_function, signal)
-        params['address'] = address
-        if modbus_function is None or address is None or params is None:
+        params['address'] = self.address(signal)
+        params['unit'] = self.unit_id(signal)
+        if modbus_function is None or \
+                self.address(signal) is None or \
+                params is None:
             # A warning method has already been logged if we get here
             return
         return self.execute_with_retry(
@@ -153,13 +156,6 @@ class ModbusTCP(EnrichSignals, Retry, Block):
             signal = self.get_output_signal(results, signal)
             self._check_exceptions(signal)
             return signal
-
-    def _address(self, signal):
-        try:
-            return int(self.address(signal))
-        except:
-            self.logger.warning('Address needs to evaluate to an integer',
-                                 exc_info=True)
 
     def _prepare_params(self, modbus_function, signal):
         try:
