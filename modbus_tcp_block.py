@@ -2,7 +2,7 @@ import logging
 import pymodbus3.client.sync
 from collections import defaultdict
 from enum import Enum
-from threading import Event, Lock
+from threading import Event
 from time import sleep
 from nio.block.base import Block
 from nio.signal.base import Signal
@@ -10,6 +10,7 @@ from nio.util.discovery import discoverable
 from nio.properties import IntProperty, Property, VersionProperty, \
     SelectProperty, PropertyHolder
 from nio.util.threading.spawn import spawn
+from nio.block.mixins.limit_lock.limit_lock import LimitLock
 from nio.block.mixins.retry.retry import Retry
 from nio.block.mixins.retry.strategy import BackoffStrategy
 from nio.block.mixins.enrich.enrich_signals import EnrichSignals
@@ -37,7 +38,7 @@ class FunctionName(Enum):
 
 
 @discoverable
-class ModbusTCP(EnrichSignals, Retry, Block):
+class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
 
     """ Communicate with a device using Modbus over TCP.
 
@@ -63,10 +64,7 @@ class ModbusTCP(EnrichSignals, Retry, Block):
     def __init__(self):
         super().__init__()
         self._clients = {}
-        self._process_lock = Lock()
         self._retry_failed = False
-        self._num_locks = 0
-        self._max_locks = 5
 
     def setup_backoff_strategy(self):
         self.use_backoff_strategy(
@@ -87,19 +85,21 @@ class ModbusTCP(EnrichSignals, Retry, Block):
             host = None
         self._connect(host)
 
-    def process_signals(self, signals, input_id='default'):
+    def process_signals(self, signals):
+        try:
+            self.execute_with_lock(
+                self._locked_process_signals, 5, signals=signals
+            )
+        except:
+            # a warning has already been logged by LimitLock mixin
+            pass
+
+    def _locked_process_signals(self, signals):
         output = []
         for signal in signals:
-            if self._num_locks >= self._max_locks:
-                self.logger.debug(
-                    "Skipping signal; max numbers of signals waiting")
-                continue
-            self._num_locks += 1
-            with self._process_lock:
-                output_signal = self._process_signal(signal)
-                if output_signal:
-                    output.append(output_signal)
-            self._num_locks -= 1
+            output_signal = self._process_signal(signal)
+            if output_signal:
+                output.append(output_signal)
         if output:
             self.notify_signals(output)
 
