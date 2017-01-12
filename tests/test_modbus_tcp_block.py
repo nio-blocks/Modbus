@@ -1,9 +1,11 @@
 from collections import defaultdict
+from threading import Event
 from unittest import skipUnless
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 from nio.block.terminals import DEFAULT_TERMINAL
 from nio.testing.block_test_case import NIOBlockTestCase
 from nio.signal.base import Signal
+from nio.util.threading import spawn
 
 
 pymodbus3_available = True
@@ -182,31 +184,28 @@ class TestModbusTCP(NIOBlockTestCase):
         blk.stop()
 
     @patch('pymodbus3.client.sync.ModbusTcpClient')
-    def test_lock_counter(self, mock_client):
-        ''' Test that the num_locks counter works '''
-        blk = ModbusTCP()
-        def _process_signal(signal):
-            self.assertEqual(blk._num_locks, 1)
-            return signal
-        blk._process_signal = _process_signal
-        self.configure_block(blk, {})
-        blk.start()
-        self.assertEqual(blk._num_locks, 0)
-        blk.process_signals([Signal()])
-        self.assertEqual(blk._num_locks, 0)
-        self.assertEqual(len(self.last_notified[DEFAULT_TERMINAL]), 1)
-        blk.stop()
-
-    @patch('pymodbus3.client.sync.ModbusTcpClient')
-    def test_max_locks(self, mock_client):
+    def test_limit_lock(self, mock_client):
         ''' Test that signals are dropped when the max locks is reached '''
         blk = ModbusTCP()
         self.configure_block(blk, {})
-        # Put the block in a state where all the max locks is reached
-        blk._num_locks = blk._max_locks
+        event = Event()
+        def _process_signals(signals):
+            event.wait()
+            blk.notify_signals(signals)
+        blk._locked_process_signals = MagicMock(side_effect=_process_signals)
+        blk.logger = MagicMock()
         blk.start()
-        blk.process_signals([Signal()])
-        self.assertEqual(len(self.last_notified[DEFAULT_TERMINAL]), 0)
+        for _ in range(5):
+            spawn(blk.process_signals, [Signal(), Signal()])
+        blk.process_signals([Signal(), Signal()])
+        # The last signal logs a warning because limit lock is reached
+        self.assertEqual(blk.logger.warning.call_count, 1)
+        # Only the first signal gets to call process signals because of lock
+        self.assertEqual(blk._locked_process_signals.call_count, 1)
+        # Now let the signals waiting for lock get processed and notify them
+        event.set()
+        from time import sleep; sleep(0.1)
+        self.assert_num_signals_notified(10)
         blk.stop()
 
     def test_exception_detail_codes(self):
