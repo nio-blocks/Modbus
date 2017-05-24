@@ -104,7 +104,7 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
             self.notify_signals(output)
 
     def _process_signal(self, signal):
-        modbus_function = self.function_name().value
+        modbus_function = self.function_name(signal).value
         params = self._prepare_params(modbus_function, signal)
         params['address'] = self.address(signal)
         params['unit'] = self.unit_id(signal)
