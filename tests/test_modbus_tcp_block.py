@@ -116,16 +116,16 @@ class TestModbusTCP(NIOBlockTestCase):
         blk.stop()
 
     @patch('pymodbus3.client.sync.ModbusTcpClient')
-    def test_write_multiple_coils(self, mock_client):
-        ''' Test write_multiple_coil function '''
+    def test_modbus_function_from_input_signal(self, mock_client):
+        ''' Attributes on input signals can be used to pick modbus function '''
         blk = ModbusTCP()
-        self.configure_block(blk, {'function_name': 'write_multiple_coils'})
+        self.configure_block(blk, {'function_name': '{{ $function }}'})
         self.assertEqual(mock_client.call_count, 1)
         # Simulate some response from the modbus read
         blk._client(blk.host()).write_coils.return_value = SampleResponse()
         blk.start()
         # Read once and assert output
-        blk.process_signals([Signal()])
+        blk.process_signals([Signal({'function': 'write_multiple_coils'})])
         self.assertEqual(blk._client(blk.host()).write_coils.call_count, 1)
         blk._client(blk.host()).write_coils.assert_called_once_with(
             address=0, values=True, unit=1)
