@@ -43,7 +43,7 @@ Notifies a signal for each frame read from Modbus. Attributes on signals include
   - `exception_code` (int, optional): Error code when function call is invalid.
   - `exception_details` (str, optional): Error details when function call is invalid.
 
-------------------------------------------------------------------------------
+***
 
 ModbusRTU
 =========
@@ -60,8 +60,8 @@ Properties
  -   **Timeout**: Default 0.05
  -   **Byte Size**: Default 8
  -   **Stop Bits**: Default 1
- -   **Parity**: Default (N)one
--   **slave_address**: Slave (unit) address of modbus device.
+ -   **Parity**: Default None
+-   **slave_address**: Slave address of modbus device.
 -   **function_name**: Modbus function call to execute.
 -   **address**: The starting address to read from or write to.
 -   **value**: The value to write to the specified address.
