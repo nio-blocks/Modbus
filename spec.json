@@ -1,80 +1,82 @@
 {
-  "nio/ModbusRTU": {
-    "Commands": {},
-    "Input": "Drive reads and writes with input signals.",
-    "Description": "Communicate with a Modbus device over RTU Serial.\nIf a modbus function fails, retries will be attempted.",
-    "Output": "### default\nNotifies a signal for each frame read from Modbus. Attributes on signals include (but are not limited to) the following:\n- `params`: Dictionary of parameters passed to function call.\n- `register_address`: Starting address.\n- `function_code`: Modbus function code.\n- `value` (optional): Value on write.\n- `values` (optional): List of int values when reading registers.\n- `exception_code` (int, optional): Error code when function call is invalid.\n- `exception_details` (str, optional): Error details when function call is invalid.",
-    "Category": "Hardware",
-    "Dependencies": [
-      "-   [minimalmodbus](https://pypi.python.org/pypi/MinimalModbus)"
-    ],
-    "Properties": {
-      "Byte Size": {
-        "description": "Default 8"
-      },
-      "Timeout": {
-        "description": "Default 0.05"
-      },
-      "address": {
-        "description": "The starting address to read from or write to."
-      },
-      "Stop Bits": {
-        "description": "Default 1"
-      },
-      "value": {
-        "description": "The value to write to the specified address."
-      },
-      "count": {
-        "description": "The number of coils/discretes/registers to read."
-      },
-      "Serial Port Setup": {
-        "description": ""
-      },
-      "slave_address": {
-        "description": "Slave address of modbus device."
-      },
-      "Serial Port": {
-        "description": "COM Port to open"
-      },
-      "Parity": {
-        "description": "Default None"
-      },
-      "Baud Rate": {
-        "description": "Default 19200"
-      },
-      "function_name": {
-        "description": "Modbus function call to execute."
-      }
+    "nio/Modbus": {
+        "Commands": {},
+        "Input": {
+            "Description": "Drive reads and writes with input signals."
+        },
+        "Description": "Communicate with a device using Modbus.\nIf a modbus function fails, retries will be attempted.",
+        "Version": "1.0.0",
+        "Output": {
+            "Description": "### default\nNotifies a signal for each frame read from Modbus. Attributes on signals include (but are not limited to) the following:\n- `params`: Dictionary of parameters passed to function call.\n- `address`: Starting address.\n- `value` (optional): Value on single write.\n- `values` (optional): Values on multiple write.\n- `bits` (optional): List of boolean values when reading coils or discrete inputs.\n- `register`s (optional): List of int values when reading registers.\n- `exception_code` (int, optional): Error code when function call is invalid.\n- `exception_details` (str, optional): Error details when function call is invalid."
+        },
+        "Properties": {
+            "address": {
+                "description": "The starting address to read from or write to."
+            },
+            "value": {
+                "description": "The value to write to the specified address."
+            },
+            "port": {
+                "default": "502",
+                "description": "The modbus port to connect to . If left blank, the default pymodbus3 value will be used."
+            },
+            "host": {
+                "description": "The host to connect to."
+            },
+            "function_name": {
+                "description": "Modbus function call to execute."
+            }
+        },
+        "Category": "Hardware"
     },
-    "Version": "1.0.0"
-  },
-  "nio/Modbus": {
-    "Commands": {},
-    "Input": "Drive reads and writes with input signals.",
-    "Description": "Communicate with a device using Modbus.\nIf a modbus function fails, retries will be attempted.",
-    "Category": "Hardware",
-    "Output": "### default\nNotifies a signal for each frame read from Modbus. Attributes on signals include (but are not limited to) the following:\n- `params`: Dictionary of parameters passed to function call.\n- `address`: Starting address.\n- `value` (optional): Value on single write.\n- `values` (optional): Values on multiple write.\n- `bits` (optional): List of boolean values when reading coils or discrete inputs.\n- `register`s (optional): List of int values when reading registers.\n- `exception_code` (int, optional): Error code when function call is invalid.\n- `exception_details` (str, optional): Error details when function call is invalid.",
-    "Dependencies": [
-      "-   [pymodbus3](https://pypi.python.org/pypi/pymodbus3/1.0.0)"
-    ],
-    "Properties": {
-      "port": {
-        "description": "The modbus port to connect to . If left blank, the default pymodbus3 value will be used.",
-        "default": "502"
-      },
-      "value": {
-        "description": "The value to write to the specified address."
-      },
-      "host": {
-        "description": "The host to connect to."
-      },
-      "address": {
-        "description": "The starting address to read from or write to."
-      },
-      "function_name": {
-        "description": "Modbus function call to execute."
-      }
-    },
-    "Version": "1.0.0"
-  }
+    "nio/ModbusRTU": {
+        "Commands": {},
+        "Input": {
+            "Description": "Drive reads and writes with input signals."
+        },
+        "Description": "Communicate with a Modbus device over RTU Serial.\nIf a modbus function fails, retries will be attempted.",
+        "Version": "1.0.0",
+        "Output": {
+            "Description": "### default\nNotifies a signal for each frame read from Modbus. Attributes on signals include (but are not limited to) the following:\n- `params`: Dictionary of parameters passed to function call.\n- `register_address`: Starting address.\n- `function_code`: Modbus function code.\n- `value` (optional): Value on write.\n- `values` (optional): List of int values when reading registers.\n- `exception_code` (int, optional): Error code when function call is invalid.\n- `exception_details` (str, optional): Error details when function call is invalid."
+        },
+        "Properties": {
+            "address": {
+                "description": "The starting address to read from or write to."
+            },
+            "value": {
+                "description": "The value to write to the specified address."
+            },
+            "function_name": {
+                "description": "Modbus function call to execute."
+            },
+            "Baud Rate": {
+                "description": "Default 19200"
+            },
+            "Byte Size": {
+                "description": "Default 8"
+            },
+            "Timeout": {
+                "description": "Default 0.05"
+            },
+            "slave_address": {
+                "description": "Slave address of modbus device."
+            },
+            "Serial Port": {
+                "description": "COM Port to open"
+            },
+            "Parity": {
+                "description": "Default None"
+            },
+            "Serial Port Setup": {
+                "description": ""
+            },
+            "count": {
+                "description": "The number of coils/discretes/registers to read."
+            },
+            "Stop Bits": {
+                "description": "Default 1"
+            }
+        },
+        "Category": "Hardware"
+    }
 }
