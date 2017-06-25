@@ -59,7 +59,6 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
                         visible=False)
     count = IntProperty(title='Number of coils/registers to read',
                         default=1)
-    continue_on_fail = BoolProperty(title='Continue on Fail', default=False)
     unit_id = IntProperty(title='Unit ID', default=1)
 
     def __init__(self):
@@ -114,19 +113,16 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
                 params is None:
             # A warning method has already been logged if we get here
             return
-        if self.continue_on_fail():
-            try:
-                return self._execute(signal, modbus_function, params)
-            except:
-                self.logger.exception(
-                    'Failed to execute on host: {}'.format(self.host(signal)))
-                return signal
-        else:
+        try:
             return self.execute_with_retry(
                 self._execute,
                 signal=signal,
                 modbus_function=modbus_function,
                 params=params)
+        except:
+            self.logger.exception(
+                'Failed to execute on host: {}'.format(self.host(signal)))
+            return self.get_output_signal({}, signal)
 
     def stop(self):
         for client in self._clients:

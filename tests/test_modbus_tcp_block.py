@@ -184,6 +184,19 @@ class TestModbusTCP(NIOBlockTestCase):
         blk.stop()
 
     @patch('pymodbus3.client.sync.ModbusTcpClient')
+    def test_execute_retry_fails(self, mock_client):
+        ''' Test behavior when execute retry fails and runs out of retries '''
+        blk = ModbusTCP()
+        self.configure_block(blk, {"enrich": {"exclude_existing": False}})
+        blk._client(blk.host()).read_coils.return_value = Exception
+        blk.start()
+        blk.process_signals([Signal({'input': 'signal'})])
+        self.assertDictEqual(
+            self.last_notified[DEFAULT_TERMINAL][0].to_dict(), {
+                'input': 'signal'})
+        blk.stop()
+
+    @patch('pymodbus3.client.sync.ModbusTcpClient')
     def test_limit_lock(self, mock_client):
         ''' Test that signals are dropped when the max locks is reached '''
         blk = ModbusTCP()
