@@ -8,7 +8,7 @@ from nio.block.base import Block
 from nio.signal.base import Signal
 from nio.util.discovery import discoverable
 from nio.properties import IntProperty, Property, VersionProperty, \
-    SelectProperty, PropertyHolder
+    SelectProperty, PropertyHolder, BoolProperty
 from nio.util.threading.spawn import spawn
 from nio.block.mixins.limit_lock.limit_lock import LimitLock
 from nio.block.mixins.retry.retry import Retry
@@ -113,11 +113,16 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
                 params is None:
             # A warning method has already been logged if we get here
             return
-        return self.execute_with_retry(
-            self._execute,
-            signal=signal,
-            modbus_function=modbus_function,
-            params=params)
+        try:
+            return self.execute_with_retry(
+                self._execute,
+                signal=signal,
+                modbus_function=modbus_function,
+                params=params)
+        except:
+            self.logger.exception(
+                'Failed to execute on host: {}'.format(self.host(signal)))
+            return self.get_output_signal({}, signal)
 
     def stop(self):
         for client in self._clients:
