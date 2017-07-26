@@ -1,5 +1,5 @@
 {
-    "nio/Modbus": {
+    "nio/ModbusTCP": {
         "Commands": {},
         "Input": {
             "Description": "Drive reads and writes with input signals."
