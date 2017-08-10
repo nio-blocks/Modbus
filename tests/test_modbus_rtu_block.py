@@ -1,10 +1,9 @@
-from collections import defaultdict
 from unittest import skipUnless
 from unittest.mock import MagicMock, patch
+
 from nio.block.terminals import DEFAULT_TERMINAL
 from nio.testing.block_test_case import NIOBlockTestCase
 from nio.signal.base import Signal
-
 
 minimalmodbus_available = True
 try:
@@ -72,7 +71,8 @@ class TestModbusRTU(NIOBlockTestCase):
                                                            functioncode=3,
                                                            numberOfRegisters=3)
         self.assertTrue(len(self.last_notified[DEFAULT_TERMINAL]))
-        self.assertEqual(self.last_notified[DEFAULT_TERMINAL][0].values, [42, 43, 44])
+        self.assertEqual(
+            self.last_notified[DEFAULT_TERMINAL][0].values, [42, 43, 44])
         blk.stop()
 
     @patch('minimalmodbus.Instrument')
@@ -141,6 +141,7 @@ class TestModbusRTU(NIOBlockTestCase):
     def test_lock_counter(self, mock_client):
         ''' Test that the num_locks counter works '''
         blk = ModbusRTU()
+
         def _process_signal(signal):
             self.assertEqual(blk._num_locks, 1)
             return signal

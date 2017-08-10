@@ -1,12 +1,12 @@
 {
   "nio/ModbusRTU": {
     "language": "Python",
-    "version": "0.0.1",
-    "reference": "github.com/nio-blocks/modbus.git@v0.0.1"
+    "reference": "git@github.com:nio-blocks/modbus.git@v0.1.0",
+    "version": "0.1.0"
   },
   "nio/ModbusTCP": {
     "language": "Python",
-    "version": "0.0.1",
-    "reference": "github.com/nio-blocks/modbus.git@v0.0.1"
+    "reference": "git@github.com:nio-blocks/modbus.git@v0.1.0",
+    "version": "0.1.0"
   }
 }

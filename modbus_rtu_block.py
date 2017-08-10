@@ -2,13 +2,12 @@ import minimalmodbus
 from enum import Enum
 from threading import Event, Lock
 from time import sleep
+
 from nio.block.base import Block
 from nio.block.mixins.retry.retry import Retry
 from nio.signal.base import Signal
-from nio.util.discovery import discoverable
 from nio.properties import StringProperty, IntProperty, \
     Property, VersionProperty, SelectProperty, PropertyHolder, ObjectProperty
-from nio.util.threading.spawn import spawn
 from nio.block.mixins.retry.strategy import BackoffStrategy
 
 
@@ -42,7 +41,6 @@ class PortConfig(PropertyHolder):
     port = StringProperty(title='Serial Port', default='/dev/ttyUSB0')
 
 
-@discoverable
 class ModbusRTU(Retry, Block):
 
     """ Communicate with a device using Modbus over RTU.
@@ -54,9 +52,11 @@ class ModbusRTU(Retry, Block):
 
     version = VersionProperty(version='0.1.0')
     slave_address = IntProperty(title='Slave Address', default=1)
-    function_name = SelectProperty(FunctionName,
-                                   title='Function Name',
-                                   default=FunctionName.read_input_registers)
+    function_name = SelectProperty(
+        FunctionName,
+        title='Function Name',
+        default=FunctionName.read_input_registers
+    )
     address = Property(title='Starting Address', default='0')
     count = IntProperty(title='Number of coils/registers to read',
                         default=1)
@@ -64,9 +64,8 @@ class ModbusRTU(Retry, Block):
     retry = IntProperty(title='Number of Retries before Error',
                         default=10,
                         visible=False)
-    port_config = ObjectProperty(PortConfig,
-                                title="Serial Port Setup",
-                                default=PortConfig())
+    port_config = ObjectProperty(
+        PortConfig, title="Serial Port Setup", default=PortConfig())
 
     def __init__(self):
         super().__init__()
@@ -121,8 +120,8 @@ class ModbusRTU(Retry, Block):
 
     def _execute(self, params, retry=False):
         self.logger.debug('Executing Modbus function \'{}\' with params: {}, '
-                           'is_retry: {}'
-                           .format(self._modbus_function, params, retry))
+                          'is_retry: {}'.format(self._modbus_function,
+                                                params, retry))
         response = getattr(self._client, self._modbus_function)(**params)
         self.logger.debug('Modbus function returned: {}'.format(response))
         return self._process_response(response, params)
@@ -165,11 +164,11 @@ class ModbusRTU(Retry, Block):
         try:
             return int(self.address(signal))
         except:
-            self.logger.warning('Address needs to evaluate to an integer',
-                                 exc_info=True)
+            self.logger.warning(
+                'Address needs to evaluate to an integer', exc_info=True)
 
     def before_retry(self, *args, **kwargs):
-        ''' Reconnect before making retry query. '''
+        """ Reconnect before making retry query. """
         self._close()
         self._connect()
 
