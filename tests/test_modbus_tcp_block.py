@@ -1,12 +1,12 @@
-from collections import defaultdict
 from threading import Event
 from unittest import skipUnless
 from unittest.mock import patch, MagicMock
+from time import sleep
+
 from nio.block.terminals import DEFAULT_TERMINAL
 from nio.testing.block_test_case import NIOBlockTestCase
 from nio.signal.base import Signal
 from nio.util.threading import spawn
-
 
 pymodbus3_available = True
 try:
@@ -44,7 +44,8 @@ class TestModbusTCP(NIOBlockTestCase):
         blk._client(blk.host()).read_coils.assert_called_once_with(
             address=0, count=1, unit=1)
         self.assertTrue(len(self.last_notified[DEFAULT_TERMINAL]))
-        self.assertEqual(self.last_notified[DEFAULT_TERMINAL][0].value, 'default')
+        self.assertEqual(
+            self.last_notified[DEFAULT_TERMINAL][0].value, 'default')
         blk.stop()
 
     @patch('pymodbus3.client.sync.ModbusTcpClient')
@@ -112,7 +113,8 @@ class TestModbusTCP(NIOBlockTestCase):
         blk._client(blk.host()).write_coil.assert_called_once_with(
             address=0, value=True, unit=1)
         self.assertTrue(len(self.last_notified[DEFAULT_TERMINAL]))
-        self.assertEqual(self.last_notified[DEFAULT_TERMINAL][0].value, 'default')
+        self.assertEqual(
+            self.last_notified[DEFAULT_TERMINAL][0].value, 'default')
         blk.stop()
 
     @patch('pymodbus3.client.sync.ModbusTcpClient')
@@ -130,7 +132,8 @@ class TestModbusTCP(NIOBlockTestCase):
         blk._client(blk.host()).write_coils.assert_called_once_with(
             address=0, values=True, unit=1)
         self.assertTrue(len(self.last_notified[DEFAULT_TERMINAL]))
-        self.assertEqual(self.last_notified[DEFAULT_TERMINAL][0].value, 'default')
+        self.assertEqual(
+            self.last_notified[DEFAULT_TERMINAL][0].value, 'default')
         blk.stop()
 
     @patch('pymodbus3.client.sync.ModbusTcpClient')
@@ -145,9 +148,10 @@ class TestModbusTCP(NIOBlockTestCase):
         blk.start()
         # Read once and assert output
         blk.process_signals([Signal()])
-        self.assertEqual(self.last_notified[DEFAULT_TERMINAL][0].exception_details,
-                         'Data address of some or all the required entities '
-                         'are not allowed or do not exist in slave')
+        self.assertEqual(
+            self.last_notified[DEFAULT_TERMINAL][0].exception_details,
+            'Data address of some or all the required entities '
+            'are not allowed or do not exist in slave')
         blk.stop()
 
     @patch("{}.sleep".format(ModbusTCP.__module__))
@@ -178,7 +182,8 @@ class TestModbusTCP(NIOBlockTestCase):
         self.assertEqual(blk._client(blk.host()).read_coils.call_count, 2)
         # A signal is output because of successful retry.
         self.assertTrue(bool(len(self.last_notified[DEFAULT_TERMINAL])))
-        self.assertEqual(self.last_notified[DEFAULT_TERMINAL][0].value, 'default')
+        self.assertEqual(
+            self.last_notified[DEFAULT_TERMINAL][0].value, 'default')
         # The retry created a new client before calling modbus function again.
         self.assertEqual(mock_client.call_count, 2)
         blk.stop()
@@ -202,6 +207,7 @@ class TestModbusTCP(NIOBlockTestCase):
         blk = ModbusTCP()
         self.configure_block(blk, {})
         event = Event()
+
         def _process_signals(signals):
             event.wait()
             blk.notify_signals(signals)
@@ -217,7 +223,7 @@ class TestModbusTCP(NIOBlockTestCase):
         self.assertEqual(blk._locked_process_signals.call_count, 1)
         # Now let the signals waiting for lock get processed and notify them
         event.set()
-        from time import sleep; sleep(0.1)
+        sleep(0.1)
         self.assert_num_signals_notified(10)
         blk.stop()
 

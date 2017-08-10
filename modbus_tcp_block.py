@@ -1,15 +1,11 @@
 import logging
 import pymodbus3.client.sync
-from collections import defaultdict
 from enum import Enum
-from threading import Event
 from time import sleep
+
 from nio.block.base import Block
-from nio.signal.base import Signal
-from nio.util.discovery import discoverable
 from nio.properties import IntProperty, Property, VersionProperty, \
-    SelectProperty, PropertyHolder, BoolProperty
-from nio.util.threading.spawn import spawn
+    SelectProperty
 from nio.block.mixins.limit_lock.limit_lock import LimitLock
 from nio.block.mixins.retry.retry import Retry
 from nio.block.mixins.retry.strategy import BackoffStrategy
@@ -37,7 +33,6 @@ class FunctionName(Enum):
     write_multiple_holding_registers = 'write_registers'
 
 
-@discoverable
 class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
 
     """ Communicate with a device using Modbus over TCP.
@@ -174,7 +169,7 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
                 return {}
         except:
             self.logger.warning('Failed to prepare function params',
-                                 exc_info=True)
+                                exc_info=True)
 
     def before_retry(self, *args, **kwargs):
         ''' Reconnect before making retry query. '''
@@ -186,24 +181,39 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
         desc = None
         if code and isinstance(code, int):
             if code == 1:
-                desc = 'Function code received in the query is not recognized or allowed by slave'
+                desc = 'Function code received in the query is not ' \
+                       'recognized or allowed by slave'
             elif code == 2:
-                desc = 'Data address of some or all the required entities are not allowed or do not exist in slave'
+                desc = 'Data address of some or all the required entities ' \
+                       'are not allowed or do not exist in slave'
             elif code == 3:
                 desc = 'Value is not accepted by slave'
             elif code == 4:
-                desc = 'Unrecoverable error occurred while slave was attempting to perform requested action'
+                desc = 'Unrecoverable error occurred while slave was ' \
+                       'attempting to perform requested action'
             elif code == 5:
-                desc = 'Slave has accepted request and is processing it, but a long duration of time is required. This response is returned to prevent a timeout error from occurring in the master. Master can next issue a Poll Program Complete message to determine if processing is completed'
+                desc = 'Slave has accepted request and is processing it, ' \
+                       'but a long duration of time is required. ' \
+                       'This response is returned to prevent a ' \
+                       'timeout error from occurring in the master. ' \
+                       'Master can next issue a Poll Program Complete ' \
+                       'message to determine if processing is completed'
             elif code == 6:
-                desc = 'Slave is engaged in processing a long-duration command. Master should retry later'
+                desc = 'Slave engaged in processing a long-duration command. '\
+                       'Master should retry later'
             elif code == 7:
-                desc = 'Slave cannot perform the programming functions. Master should request diagnostic or error information from slave'
+                desc = 'Slave cannot perform the programming functions. ' \
+                       'Master should request diagnostic ' \
+                       'or error information from slave'
             elif code == 8:
-                desc = 'Slave detected a parity error in memory. Master can retry the request, but service may be required on the slave device'
+                desc = 'Slave detected a parity error in memory. ' \
+                       'Master can retry the request, ' \
+                       'but service may be required on the slave device'
             elif code == 10:
-                desc = 'Specialized for Modbus gateways. Indicates a misconfigured gateway'
+                desc = 'Specialized for Modbus gateways. ' \
+                       'Indicates a misconfigured gateway'
             elif code == 11:
-                desc = 'Specialized for Modbus gateways. Sent when slave fails to respond'
+                desc = 'Specialized for Modbus gateways. ' \
+                       'Sent when slave fails to respond'
         if desc:
             signal.exception_details = desc
