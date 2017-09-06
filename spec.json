@@ -93,9 +93,9 @@
         "default": 0
       },
       "count": {
-        "title": "Number of coils/registers to read",
+        "title": "Coils/Registers count",
         "type": "IntType",
-        "description": "",
+        "description": "Number of coils/registers to read",
         "default": 1
       },
       "enrich": {
