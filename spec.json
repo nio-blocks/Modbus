@@ -2,6 +2,9 @@
   "nio/ModbusRTU": {
     "version": "0.1.0",
     "description": "Communicate with a Modbus device over RTU Serial.",
+    "categories": [
+      "Hardware"
+    ],
     "properties": {
       "address": {
         "title": "Starting Address",
@@ -79,6 +82,9 @@
   "nio/ModbusTCP": {
     "version": "0.1.0",
     "description": "Communicate with a device using Modbus TCP.",
+    "categories": [
+      "Hardware"
+    ],
     "properties": {
       "address": {
         "title": "Starting Address",
