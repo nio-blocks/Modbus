@@ -74,7 +74,7 @@
     },
     "outputs": {
       "default": {
-        "description": "Notifies a signal for each frame read from Modbus. See example below."
+        "description": "Notifies a signal for each frame read from Modbus."
       }
     },
     "commands": {}
@@ -156,7 +156,7 @@
     },
     "outputs": {
       "default": {
-        "description": "Notifies a signal for each frame read from Modbus. See example below."
+        "description": "Notifies a signal for each frame read from Modbus."
       }
     },
     "commands": {}
