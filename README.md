@@ -42,7 +42,7 @@ Properties
 - **host**: The host to connect to.
 - **retry**: How many times to retry connection on failure.
 - **retry_options**: Configurables for retry attempts.
-- **unit_id**: ID of modbus unit
+- **unit_id**: ID of modbus unit.
 - **value**: The value to write to the specified address.
 
 Inputs
