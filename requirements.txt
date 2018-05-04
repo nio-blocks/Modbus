@@ -1,2 +1,3 @@
 pymodbus3
 minimalmodbus
+pyserial==3.2
