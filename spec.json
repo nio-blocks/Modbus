@@ -29,12 +29,12 @@
         "type": "ObjectType",
         "description": "The modbus port to connect to (default 502). If left blank, the default pymodbus3 value will be used.",
         "default": {
-          "bytesize": 8,
-          "stopbits": 1,
           "baudrate": 19200,
           "parity": "N",
-          "port": "/dev/ttyUSB0",
-          "timeout": "0.05"
+          "bytesize": 8,
+          "stopbits": 1,
+          "timeout": "0.05",
+          "port": "/dev/ttyUSB0"
         }
       },
       "retry": {
@@ -48,10 +48,10 @@
         "type": "ObjectType",
         "description": "Configurables for retry attempts.",
         "default": {
-          "max_retry": 5,
-          "indefinite": false,
           "strategy": "linear",
-          "multiplier": 1
+          "max_retry": 5,
+          "multiplier": 1,
+          "indefinite": false
         }
       },
       "slave_address": {
@@ -93,7 +93,7 @@
         "default": 0
       },
       "count": {
-        "title": "Coils/Registers count",
+        "title": "Number of coils/registers to read",
         "type": "IntType",
         "description": "Number of coils/registers to read",
         "default": 1
@@ -103,8 +103,8 @@
         "type": "ObjectType",
         "description": "If true, the incoming signal will be attached to the output signal.",
         "default": {
-          "exclude_existing": true,
-          "enrich_field": ""
+          "enrich_field": "",
+          "exclude_existing": true
         }
       },
       "function_name": {
@@ -130,10 +130,10 @@
         "type": "ObjectType",
         "description": "Configurables for retry attempts.",
         "default": {
-          "max_retry": 5,
-          "indefinite": false,
           "strategy": "linear",
-          "multiplier": 1
+          "max_retry": 5,
+          "multiplier": 1,
+          "indefinite": false
         }
       },
       "unit_id": {
