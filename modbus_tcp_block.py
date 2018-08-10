@@ -8,18 +8,7 @@ from nio.properties import IntProperty, Property, VersionProperty, \
     SelectProperty
 from nio.block.mixins.limit_lock.limit_lock import LimitLock
 from nio.block.mixins.retry.retry import Retry
-from nio.block.mixins.retry.strategy import BackoffStrategy
 from nio.block.mixins.enrich.enrich_signals import EnrichSignals
-
-
-class SleepBackoffStrategy(BackoffStrategy):
-
-    def next_retry(self):
-        self.logger.debug(
-            "Waiting {} seconds before retrying execute method".format(
-                self.retry_num))
-        sleep(self.retry_num)
-        return True
 
 
 class FunctionName(Enum):
@@ -60,11 +49,6 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
         super().__init__()
         self._clients = {}
         self._retry_failed = False
-
-    def setup_backoff_strategy(self):
-        self.use_backoff_strategy(
-            SleepBackoffStrategy,
-            **(self.retry_options().get_options_dict()))
 
     def configure(self, context):
         super().configure(context)
