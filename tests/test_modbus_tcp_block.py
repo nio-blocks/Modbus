@@ -154,23 +154,11 @@ class TestModbusTCP(NIOBlockTestCase):
             'are not allowed or do not exist in slave')
         blk.stop()
 
-    @patch("{}.sleep".format(ModbusTCP.__module__))
-    @patch('pymodbus3.client.sync.ModbusTcpClient')
-    def test_execute_retry_forever(self, mock_client, mock_sleep):
-        ''' Test that retries will continue forever '''
-        blk = ModbusTCP()
-        self.configure_block(blk, {})
-        blk._backoff_strategy.retry_num = 0
-        self.assertFalse(blk._backoff_strategy.wait_for_retry())
-        # And even when we've passed the number of allowed retries
-        blk._backoff_strategy.retry_num = 99
-        self.assertFalse(blk._backoff_strategy.wait_for_retry())
-
     @patch('pymodbus3.client.sync.ModbusTcpClient')
     def test_execute_retry_success(self, mock_client):
         ''' Test behavior when execute retry works '''
         blk = ModbusTCP()
-        self.configure_block(blk, {})
+        self.configure_block(blk, {'retry_options': {'multiplier': 0}})
         self.assertEqual(mock_client.call_count, 1)
         # Simulate an exception and then a success.
         blk._client(blk.host()).read_coils.side_effect = \
@@ -192,7 +180,9 @@ class TestModbusTCP(NIOBlockTestCase):
     def test_execute_retry_fails(self, mock_client):
         ''' Test behavior when execute retry fails and runs out of retries '''
         blk = ModbusTCP()
-        self.configure_block(blk, {"enrich": {"exclude_existing": False}})
+        self.configure_block(blk, {
+            "enrich": {"exclude_existing": False},
+            "retry_options": {"multiplier": 0}})
         blk._client(blk.host()).read_coils.return_value = Exception
         blk.start()
         blk.process_signals([Signal({'input': 'signal'})])
