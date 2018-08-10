@@ -8,17 +8,6 @@ from nio.block.mixins.retry.retry import Retry
 from nio.signal.base import Signal
 from nio.properties import StringProperty, IntProperty, \
     Property, VersionProperty, SelectProperty, PropertyHolder, ObjectProperty
-from nio.block.mixins.retry.strategy import BackoffStrategy
-
-
-class SleepBackoffStrategy(BackoffStrategy):
-
-    def next_retry(self):
-        self.logger.debug(
-            "Waiting {} seconds before retrying execute method".format(
-                self.retry_num))
-        sleep(self.retry_num)
-        return True
 
 
 class FunctionName(Enum):
@@ -74,11 +63,6 @@ class ModbusRTU(Retry, Block):
         self._modbus_function = None
         self._num_locks = 0
         self._max_locks = 5
-
-    def setup_backoff_strategy(self):
-        self.use_backoff_strategy(
-            SleepBackoffStrategy,
-            **(self.retry_options().get_options_dict()))
 
     def configure(self, context):
         super().configure(context)
