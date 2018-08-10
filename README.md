@@ -23,11 +23,14 @@ Outputs
 
 Commands
 --------
+None
 
 Dependencies
 ------------
 -   [minimalmodbus](https://pypi.python.org/pypi/MinimalModbus)
 -   [pymodbus3](https://pypi.python.org/pypi/pymodbus3/1.0.0)
+
+***
 
 ModbusTCP
 =========
@@ -36,13 +39,13 @@ Communicate with a device using Modbus TCP.
 Properties
 ----------
 - **address**: The starting address to read from or write to.
-- **count**: 
+- **count**: Number of coils/registers to read
 - **enrich**: If true, the incoming signal will be attached to the output signal.
 - **function_name**: Modbus function call to execute.
 - **host**: The host to connect to.
 - **retry**: How many times to retry connection on failure.
 - **retry_options**: Configurables for retry attempts.
-- **unit_id**: ID of modbus unit.
+- **unit_id**: ID of modbus unit
 - **value**: The value to write to the specified address.
 
 Inputs
@@ -55,9 +58,10 @@ Outputs
 
 Commands
 --------
+None
 
 Output Example
-------
+--------------
 Attributes on signals include (but are not limited to) the following:
   - `params`: Dictionary of parameters passed to function call.
     - `register_address`: Starting address.
@@ -66,3 +70,4 @@ Attributes on signals include (but are not limited to) the following:
   - `values` (optional): List of int values when reading registers.
   - `exception_code` (int, optional): Error code when function call is invalid.
   - `exception_details` (str, optional): Error details when function call is invalid.
+
