@@ -104,23 +104,11 @@ class TestModbusRTU(NIOBlockTestCase):
         self.assertFalse(len(self.last_notified[DEFAULT_TERMINAL]))
         blk.stop()
 
-    @patch("{}.sleep".format(ModbusRTU.__module__))
-    @patch('minimalmodbus.Instrument')
-    def test_execute_retry_forever(self, mock_client, mock_sleep):
-        ''' Test that retries will continue forever '''
-        blk = ModbusRTU()
-        self.configure_block(blk, {})
-        blk._backoff_strategy.retry_num = 0
-        self.assertFalse(blk._backoff_strategy.wait_for_retry())
-        # And even when we've passed the number of allowed retries
-        blk._backoff_strategy.retry_num = 99
-        self.assertFalse(blk._backoff_strategy.wait_for_retry())
-
     @patch('minimalmodbus.Instrument')
     def test_execute_retry_success(self, mock_client):
         ''' Test behavior when execute retry works '''
         blk = ModbusRTU()
-        self.configure_block(blk, {})
+        self.configure_block(blk, {'retry_options': {'multiplier': 0}})
         self.assertEqual(mock_client.call_count, 1)
         # Simulate an exception and then a success.
         blk._client.read_registers.side_effect = \
