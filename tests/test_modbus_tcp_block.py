@@ -183,7 +183,7 @@ class TestModbusTCP(NIOBlockTestCase):
         self.configure_block(blk, {
             "enrich": {"exclude_existing": False},
             "retry_options": {"multiplier": 0}})
-        blk._client(blk.host()).read_coils.return_value = Exception
+        blk._client(blk.host()).read_coils.side_effect = Exception
         blk.start()
         blk.process_signals([Signal({'input': 'signal'})])
         self.assertDictEqual(
