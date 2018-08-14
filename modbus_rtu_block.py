@@ -39,7 +39,7 @@ class ModbusRTU(Retry, Block):
         port (str): Serial port modbus device is connected to.
     """
 
-    version = VersionProperty("0.1.1")
+    version = VersionProperty("0.1.2")
     slave_address = IntProperty(title='Slave Address', default=1)
     function_name = SelectProperty(
         FunctionName,
