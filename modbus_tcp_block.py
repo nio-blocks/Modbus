@@ -31,7 +31,7 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
         port (int): The modbus port to connect to.
     """
 
-    version = VersionProperty("0.1.1")
+    version = VersionProperty("0.1.2")
     host = Property(title='Host', default='127.0.0.1')
     function_name = SelectProperty(FunctionName,
                                    title='Function Name',

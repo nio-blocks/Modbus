@@ -80,7 +80,7 @@
     "commands": {}
   },
   "nio/ModbusTCP": {
-    "version": "0.1.1",
+    "version": "0.1.2",
     "description": "Communicate with a device using Modbus TCP.",
     "categories": [
       "Hardware"
