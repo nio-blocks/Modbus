@@ -33,6 +33,7 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
 
     version = VersionProperty("0.1.2")
     host = Property(title='Host', default='127.0.0.1')
+    port = IntProperty(title='Port', default=502)
     function_name = SelectProperty(FunctionName,
                                    title='Function Name',
                                    default=FunctionName.read_coils)
@@ -57,12 +58,14 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
         # Make sure host is able to evaluate without a signal before connecting
         try:
             host = self.host()
+            port = self.port()
         except:
             # host uses an expression so don't connect yet
             self.logger.debug(
                 "Host is an expression that uses a signal so don't connect")
             host = None
-        self._connect(host)
+            port = 0
+        self._connect(host, port)
 
     def process_signals(self, signals):
         try:
@@ -108,30 +111,30 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
             self._clients[client].close()
         super().stop()
 
-    def _connect(self, host=None):
+    def _connect(self, host=None, port=502):
         # If host is specifed connect to that, else reconnect to existing hosts
         if host:
-            self._connect_to_host(host)
+            self._connect_to_host(host, port)
         else:
             for host in self._clients:
-                self._connect_to_host(host)
+                self._connect_to_host(self._clients[host].host, self._clients[host].port)
 
-    def _connect_to_host(self, host):
+    def _connect_to_host(self, host, port):
         self.logger.debug('Connecting to modbus host: {}'.format(host))
-        self._clients[host] = pymodbus3.client.sync.ModbusTcpClient(host)
+        self._clients['{}:{}'.format(host,port)] = pymodbus3.client.sync.ModbusTcpClient(host, port=port)
         self.logger.debug(
             'Succesfully connected to modbus host: {}'.format(host))
 
-    def _client(self, host):
-        if host not in self._clients:
-            self._connect(host)
-        return self._clients[host]
+    def _client(self, host, port):
+        if '{}:{}'.format(host,port) not in self._clients:
+            self._connect(host, port)
+        return self._clients['{}:{}'.format(host,port)]
 
     def _execute(self, signal, modbus_function, params):
         self.logger.debug(
             "Execute Modbus function '{}' with params: {}".format(
                 modbus_function, params))
-        result = getattr(self._client(self.host(signal)),
+        result = getattr(self._client(self.host(signal), self.port(signal)),
                          modbus_function)(**params)
         self.logger.debug('Modbus function returned: {}'.format(result))
         if result:
