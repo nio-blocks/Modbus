@@ -119,6 +119,12 @@
         "description": "The host to connect to.",
         "default": "127.0.0.1"
       },
+      "port": {
+        "title": "Port",
+        "type": "IntType",
+        "description": "The port to connect to.",
+        "default": 502
+      },
       "retry": {
         "title": "Number of Retries before Error",
         "type": "IntType",

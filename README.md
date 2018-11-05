@@ -19,7 +19,7 @@ Inputs
 
 Outputs
 -------
-- **default**: Notifies a signal for each frame read from Modbus. See example below.
+- **default**: Notifies a signal for each frame read from Modbus.
 
 Commands
 --------
@@ -43,6 +43,7 @@ Properties
 - **enrich**: If true, the incoming signal will be attached to the output signal.
 - **function_name**: Modbus function call to execute.
 - **host**: The host to connect to.
+- **port**: The port to connect to.
 - **retry**: How many times to retry connection on failure.
 - **retry_options**: Configurables for retry attempts.
 - **unit_id**: ID of modbus unit
@@ -54,7 +55,7 @@ Inputs
 
 Outputs
 -------
-- **default**: Notifies a signal for each frame read from Modbus. See example below.
+- **default**: Notifies a signal for each frame read from Modbus.
 
 Commands
 --------
