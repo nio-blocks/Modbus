@@ -233,3 +233,27 @@ class TestModbusTCP(NIOBlockTestCase):
         signal.exception_code = 12
         blk._check_exceptions(signal)
         self.assertFalse(hasattr(signal, 'exception_details'))
+
+    @patch('pymodbus3.client.sync.ModbusTcpClient')
+    def test_host_and_port_from_signal(self, mock_client):
+        ''' Test that host and port evaluate using the incoming signal '''
+        blk = ModbusTCP()
+        self.configure_block(blk, {
+            "host": "{{ $host }}", "port": "{{ $port }}"})
+        # Initial client connect is skipped since host relies on signal
+        self.assertEqual(mock_client.call_count, 0)
+        # Simulate some response from the modbus read
+        mock_client.return_value.read_coils.return_value = SampleResponse("1")
+        blk.start()
+        self.assertEqual(mock_client.call_count, 0)
+        # Connect and read from client
+        test_signal = Signal({"host": "address", "port": 42})
+        blk.process_signals([test_signal])
+        test_client = blk._client(blk.host(test_signal), blk.port(test_signal))
+        test_client.read_coils.assert_called_once_with(
+            address=0, count=1, unit=1)
+        self.assertEqual(mock_client.call_count, 1)
+        # Check block output
+        self.assertEqual(len(self.last_notified[DEFAULT_TERMINAL]), 1)
+        self.assertEqual(self.last_notified[DEFAULT_TERMINAL][0].value, '1')
+        blk.stop()
