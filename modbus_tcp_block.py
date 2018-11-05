@@ -116,8 +116,9 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
         if host:
             self._connect_to_host(host, port)
         else:
-            for host in self._clients:
-                self._connect_to_host(self._clients[host].host, self._clients[host].port)
+            for index in self._clients:
+                indexVars = index.split(":")
+                self._connect_to_host(indexVars[0], int(indexVars[1]))
 
     def _connect_to_host(self, host, port):
         self.logger.debug('Connecting to modbus host: {}'.format(host))
