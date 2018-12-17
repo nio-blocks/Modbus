@@ -99,7 +99,7 @@ class ModbusRTU(Retry, Block):
         minimalmodbus.PARITY = self.port_config().parity()
         minimalmodbus.BYTESIZE = self.port_config().bytesize()
         minimalmodbus.STOPBITS = self.port_config().stopbits()
-        minimalmodbus.TIMEOUT = float(self.timeout())
+        minimalmodbus.TIMEOUT = self.timeout()
         self._client = minimalmodbus.Instrument(self.port_config().port(),
                                                 self.slave_address())
         self.logger.debug(self._client)
