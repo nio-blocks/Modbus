@@ -32,17 +32,19 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
         timeout (float): Seconds to wait for a response before failing.
     """
 
-    version = VersionProperty("0.2.0")
-    host = Property(title='Host', default='127.0.0.1')
-    port = IntProperty(title='Port', default=502)
+    version = VersionProperty("0.2.0", order=100)
+    host = Property(title='Host', default='127.0.0.1', order=10)
+    port = IntProperty(title='Port', default=502, order=11)
     function_name = SelectProperty(FunctionName,
                                    title='Function Name',
-                                   default=FunctionName.read_coils)
-    address = IntProperty(title='Starting Address', default=0)
-    value = Property(title='Write Value(s)', default='{{ True }}')
+                                   default=FunctionName.read_coils,
+                                   order=13)
+    address = IntProperty(title='Starting Address', default=0, order=14)
+    value = Property(title='Write Value(s)', default='{{ True }}', order=16)
     count = IntProperty(title='Number of coils/registers to read',
-                        default=1)
-    unit_id = IntProperty(title='Unit ID', default=1)
+                        default=1,
+                        order=15)
+    unit_id = IntProperty(title='Unit ID', default=1, order=12)
     timeout = FloatProperty(title='Timeout', default=1, advanced=True)
 
     def __init__(self):
