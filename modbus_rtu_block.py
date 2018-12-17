@@ -6,7 +6,7 @@ from time import sleep
 from nio.block.base import Block
 from nio.block.mixins.retry.retry import Retry
 from nio.signal.base import Signal
-from nio.properties import StringProperty, IntProperty, \
+from nio.properties import StringProperty, IntProperty, FloatProperty, \
     Property, VersionProperty, SelectProperty, PropertyHolder, ObjectProperty
 
 
@@ -22,12 +22,13 @@ class FunctionName(Enum):
 
 
 class PortConfig(PropertyHolder):
-    baudrate = IntProperty(title='Baud Rate', default=19200)
-    parity = StringProperty(title='Parity (N, E, O)', default='N')
-    bytesize = IntProperty(title='Byte Size', default=8)
-    stopbits = IntProperty(title='Stop Bits', default=1)
-    timeout = Property(title='Timeout', default='0.05')
-    port = StringProperty(title='Serial Port', default='/dev/ttyUSB0')
+    baudrate = IntProperty(title='Baud Rate', default=19200, order=21)
+    parity = StringProperty(title='Parity (N, E, O)', default='N', order=23)
+    bytesize = IntProperty(title='Byte Size', default=8, order=22)
+    stopbits = IntProperty(title='Stop Bits', default=1, order=24)
+    port = StringProperty(title='Serial Port',
+                          default='/dev/ttyUSB0',
+                          order=20)
 
 
 class ModbusRTU(Retry, Block):
@@ -37,24 +38,26 @@ class ModbusRTU(Retry, Block):
     Parameters:
         slave_address (str): Slave address of modbus device.
         port (str): Serial port modbus device is connected to.
+        timeout (float): Seconds to wait for a response before failing.
     """
 
     version = VersionProperty("0.1.2")
-    slave_address = IntProperty(title='Slave Address', default=1)
-    function_name = SelectProperty(
-        FunctionName,
-        title='Function Name',
-        default=FunctionName.read_input_registers
-    )
-    address = Property(title='Starting Address', default='0')
+    slave_address = IntProperty(title='Slave Address', default=1, order=10)
+    function_name = SelectProperty(FunctionName,
+                                   title='Function Name',
+                                   default=FunctionName.read_input_registers,
+                                   order=11)
+    address = Property(title='Starting Address', default='0', order=12)
     count = IntProperty(title='Number of coils/registers to read',
-                        default=1)
-    value = Property(title='Write Value(s)', default='{{ True }}')
-    retry = IntProperty(title='Number of Retries before Error',
-                        default=10,
-                        visible=False)
-    port_config = ObjectProperty(
-        PortConfig, title="Serial Port Setup", default=PortConfig())
+                        default=1,
+                        order=13)
+    value = Property(title='Write Value(s)', default='{{ True }}', order=14)
+    port_config = ObjectProperty(PortConfig,
+                                 title="Serial Port Setup",
+                                 default=PortConfig(),
+                                 advanced=True)
+    timeout = FloatProperty(title='Timeout', default='0.05', advanced=True)
+
 
     def __init__(self):
         super().__init__()
@@ -96,7 +99,7 @@ class ModbusRTU(Retry, Block):
         minimalmodbus.PARITY = self.port_config().parity()
         minimalmodbus.BYTESIZE = self.port_config().bytesize()
         minimalmodbus.STOPBITS = self.port_config().stopbits()
-        minimalmodbus.TIMEOUT = float(self.port_config().timeout())
+        minimalmodbus.TIMEOUT = self.timeout()
         self._client = minimalmodbus.Instrument(self.port_config().port(),
                                                 self.slave_address())
         self.logger.debug(self._client)

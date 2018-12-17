@@ -1,11 +1,11 @@
 import logging
-import pymodbus3.client.sync
+import pymodbus.client.sync
 from enum import Enum
 from time import sleep
 
 from nio.block.base import Block
 from nio.properties import IntProperty, Property, VersionProperty, \
-    SelectProperty
+    SelectProperty, FloatProperty
 from nio.block.mixins.limit_lock.limit_lock import LimitLock
 from nio.block.mixins.retry.retry import Retry
 from nio.block.mixins.enrich.enrich_signals import EnrichSignals
@@ -29,32 +29,32 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
     Parameters:
         host (str): The host to connect to.
         port (int): The modbus port to connect to.
+        timeout (float): Seconds to wait for a response before failing.
     """
 
-    version = VersionProperty("0.2.0")
-    host = Property(title='Host', default='127.0.0.1')
-    port = IntProperty(title='Port', default=502)
+    version = VersionProperty("0.2.0", order=100)
+    host = Property(title='Host', default='127.0.0.1', order=10)
+    port = IntProperty(title='Port', default=502, order=11)
     function_name = SelectProperty(FunctionName,
                                    title='Function Name',
-                                   default=FunctionName.read_coils)
-    address = IntProperty(title='Starting Address', default=0)
-    value = Property(title='Write Value(s)', default='{{ True }}')
-    retry = IntProperty(title='Number of Retries before Error',
-                        default=10,
-                        visible=False)
+                                   default=FunctionName.read_coils,
+                                   order=13)
+    address = IntProperty(title='Starting Address', default=0, order=14)
+    value = Property(title='Write Value(s)', default='{{ True }}', order=16)
     count = IntProperty(title='Number of coils/registers to read',
-                        default=1)
-    unit_id = IntProperty(title='Unit ID', default=1)
+                        default=1,
+                        order=15)
+    unit_id = IntProperty(title='Unit ID', default=1, order=12)
+    timeout = FloatProperty(title='Timeout', default=1, advanced=True)
 
     def __init__(self):
         super().__init__()
         self._clients = {}
-        self._retry_failed = False
 
     def configure(self, context):
         super().configure(context)
-        # We don't need pymodbus3 to log for us. The block will handle that.
-        logging.getLogger('pymodbus3').setLevel(logging.CRITICAL)
+        # We don't need pymodbus to log for us. The block will handle that.
+        logging.getLogger('pymodbus').setLevel(logging.CRITICAL)
         # Make sure host is able to evaluate without a signal before connecting
         try:
             host = self.host()
@@ -122,7 +122,10 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
 
     def _connect_to_host(self, host, port):
         self.logger.debug('Connecting to modbus host: {}'.format(host))
-        self._clients['{}:{}'.format(host,port)] = pymodbus3.client.sync.ModbusTcpClient(host, port=port)
+        client = pymodbus.client.sync.ModbusTcpClient(host,
+                                                      port=port,
+                                                      timeout=self.timeout())
+        self._clients['{}:{}'.format(host,port)] = client
         self.logger.debug(
             'Succesfully connected to modbus host: {}'.format(host))
 

@@ -1,170 +1,20 @@
 {
   "nio/ModbusRTU": {
-    "version": "0.1.2",
-    "description": "Communicate with a Modbus device over RTU Serial.",
+    "description": "Communicate with a Modbus/RTU device over serial.",
     "categories": [
       "Hardware"
     ],
-    "properties": {
-      "address": {
-        "title": "Starting Address",
-        "type": "Type",
-        "description": "The starting address to read from or write to.",
-        "default": "0"
-      },
-      "count": {
-        "title": "Number of coils/registers to read",
-        "type": "IntType",
-        "description": "The number of coils/discretes/registers to read.",
-        "default": 1
-      },
-      "function_name": {
-        "title": "Function Name",
-        "type": "SelectType",
-        "description": "Modbus function call to execute.",
-        "default": 4
-      },
-      "port_config": {
-        "title": "Serial Port Setup",
-        "type": "ObjectType",
-        "description": "The modbus port to connect to (default 502). If left blank, the default pymodbus3 value will be used.",
-        "default": {
-          "baudrate": 19200,
-          "parity": "N",
-          "bytesize": 8,
-          "stopbits": 1,
-          "timeout": "0.05",
-          "port": "/dev/ttyUSB0"
-        }
-      },
-      "retry": {
-        "title": "Number of Retries before Error",
-        "type": "IntType",
-        "description": "How many times to retry connection on failure.",
-        "default": 10
-      },
-      "retry_options": {
-        "title": "Retry Options",
-        "type": "ObjectType",
-        "description": "Configurables for retry attempts.",
-        "default": {
-          "strategy": "linear",
-          "max_retry": 5,
-          "multiplier": 1,
-          "indefinite": false
-        }
-      },
-      "slave_address": {
-        "title": "Slave Address",
-        "type": "IntType",
-        "description": "Slave address of modbus device.",
-        "default": 1
-      },
-      "value": {
-        "title": "Write Value(s)",
-        "type": "Type",
-        "description": "The value to write to the specified address.",
-        "default": "{{ True }}"
-      }
-    },
-    "inputs": {
-      "default": {
-        "description": "Drive reads and writes with input signals."
-      }
-    },
-    "outputs": {
-      "default": {
-        "description": "Notifies a signal for each frame read from Modbus."
-      }
-    },
-    "commands": {}
+    "tags": "serial",
+    "from_readme": "docs/modbus_rtu.md",
+    "from_python": "modbus_rtu_block.ModbusRTU"
   },
   "nio/ModbusTCP": {
-    "version": "0.2.0",
-    "description": "Communicate with a device using Modbus TCP.",
+    "description": "Communicate with a device using Modbus/TCP.",
     "categories": [
       "Hardware"
     ],
-    "properties": {
-      "address": {
-        "title": "Starting Address",
-        "type": "IntType",
-        "description": "The starting address to read from or write to.",
-        "default": 0
-      },
-      "count": {
-        "title": "Number of coils/registers to read",
-        "type": "IntType",
-        "description": "Number of coils/registers to read",
-        "default": 1
-      },
-      "enrich": {
-        "title": "Signal Enrichment",
-        "type": "ObjectType",
-        "description": "If true, the incoming signal will be attached to the output signal.",
-        "default": {
-          "enrich_field": "",
-          "exclude_existing": true
-        }
-      },
-      "function_name": {
-        "title": "Function Name",
-        "type": "SelectType",
-        "description": "Modbus function call to execute.",
-        "default": "read_coils"
-      },
-      "host": {
-        "title": "Host",
-        "type": "Type",
-        "description": "The host to connect to.",
-        "default": "127.0.0.1"
-      },
-      "port": {
-        "title": "Port",
-        "type": "IntType",
-        "description": "The port to connect to.",
-        "default": 502
-      },
-      "retry": {
-        "title": "Number of Retries before Error",
-        "type": "IntType",
-        "description": "How many times to retry connection on failure.",
-        "default": 10
-      },
-      "retry_options": {
-        "title": "Retry Options",
-        "type": "ObjectType",
-        "description": "Configurables for retry attempts.",
-        "default": {
-          "strategy": "linear",
-          "max_retry": 5,
-          "multiplier": 1,
-          "indefinite": false
-        }
-      },
-      "unit_id": {
-        "title": "Unit ID",
-        "type": "IntType",
-        "description": "ID of modbus unit",
-        "default": 1
-      },
-      "value": {
-        "title": "Write Value(s)",
-        "type": "Type",
-        "description": "The value to write to the specified address.",
-        "default": "{{ True }}"
-      }
-    },
-    "inputs": {
-      "default": {
-        "description": "Drive reads and writes with input signals."
-      }
-    },
-    "outputs": {
-      "default": {
-        "description": "Notifies a signal for each frame read from Modbus."
-      }
-    },
-    "commands": {}
+    "tags": "",
+    "from_readme": "docs/modbus_tcp.md",
+    "from_python": "modbus_tcp_block.ModbusTCP"
   }
 }
