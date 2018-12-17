@@ -8,11 +8,11 @@ from nio.testing.block_test_case import NIOBlockTestCase
 from nio.signal.base import Signal
 from nio.util.threading import spawn
 
-pymodbus3_available = True
+pymodbus_available = True
 try:
-    import pymodbus3
+    import pymodbus
 except ImportError:
-    pymodbus3_available = False
+    pymodbus_available = False
 
 try:
     from ..modbus_tcp_block import ModbusTCP
@@ -27,10 +27,10 @@ class SampleResponse():
         self.value = value
 
 
-@skipUnless(pymodbus3_available, 'pymodbus3 is not available!!')
+@skipUnless(pymodbus_available, 'pymodbus is not available!!')
 class TestModbusTCP(NIOBlockTestCase):
 
-    @patch('pymodbus3.client.sync.ModbusTcpClient')
+    @patch('pymodbus.client.sync.ModbusTcpClient')
     def test_defaults(self, mock_client):
         ''' Test that read_coils is called with default configuration '''
         blk = ModbusTCP()
@@ -48,7 +48,7 @@ class TestModbusTCP(NIOBlockTestCase):
             self.last_notified[DEFAULT_TERMINAL][0].value, 'default')
         blk.stop()
 
-    @patch('pymodbus3.client.sync.ModbusTcpClient')
+    @patch('pymodbus.client.sync.ModbusTcpClient')
     def test_enrich_signals_mixin(self, mock_client):
         ''' Test that read_coils is called with default configuration '''
         blk = ModbusTCP()
@@ -70,7 +70,7 @@ class TestModbusTCP(NIOBlockTestCase):
             })
         blk.stop()
 
-    @patch('pymodbus3.client.sync.ModbusTcpClient')
+    @patch('pymodbus.client.sync.ModbusTcpClient')
     def test_multiple_hosts(self, mock_client):
         ''' Test that read_coils is called for each client'''
         blk = ModbusTCP()
@@ -98,7 +98,7 @@ class TestModbusTCP(NIOBlockTestCase):
         self.assertEqual(self.last_notified[DEFAULT_TERMINAL][1].value, '2')
         blk.stop()
 
-    @patch('pymodbus3.client.sync.ModbusTcpClient')
+    @patch('pymodbus.client.sync.ModbusTcpClient')
     def test_write_coil(self, mock_client):
         ''' Test write_coil function '''
         blk = ModbusTCP()
@@ -117,7 +117,7 @@ class TestModbusTCP(NIOBlockTestCase):
             self.last_notified[DEFAULT_TERMINAL][0].value, 'default')
         blk.stop()
 
-    @patch('pymodbus3.client.sync.ModbusTcpClient')
+    @patch('pymodbus.client.sync.ModbusTcpClient')
     def test_modbus_function_from_input_signal(self, mock_client):
         ''' Attributes on input signals can be used to pick modbus function '''
         blk = ModbusTCP()
@@ -136,7 +136,7 @@ class TestModbusTCP(NIOBlockTestCase):
             self.last_notified[DEFAULT_TERMINAL][0].value, 'default')
         blk.stop()
 
-    @patch('pymodbus3.client.sync.ModbusTcpClient')
+    @patch('pymodbus.client.sync.ModbusTcpClient')
     def test_exception_code(self, mock_client):
         ''' Test output signal when response contains an exception_code '''
         blk = ModbusTCP()
@@ -154,7 +154,7 @@ class TestModbusTCP(NIOBlockTestCase):
             'are not allowed or do not exist in slave')
         blk.stop()
 
-    @patch('pymodbus3.client.sync.ModbusTcpClient')
+    @patch('pymodbus.client.sync.ModbusTcpClient')
     def test_execute_retry_success(self, mock_client):
         ''' Test behavior when execute retry works '''
         blk = ModbusTCP()
@@ -176,7 +176,7 @@ class TestModbusTCP(NIOBlockTestCase):
         self.assertEqual(mock_client.call_count, 2)
         blk.stop()
 
-    @patch('pymodbus3.client.sync.ModbusTcpClient')
+    @patch('pymodbus.client.sync.ModbusTcpClient')
     def test_execute_retry_fails(self, mock_client):
         ''' Test behavior when execute retry fails and runs out of retries '''
         blk = ModbusTCP()
@@ -191,7 +191,7 @@ class TestModbusTCP(NIOBlockTestCase):
                 'input': 'signal'})
         blk.stop()
 
-    @patch('pymodbus3.client.sync.ModbusTcpClient')
+    @patch('pymodbus.client.sync.ModbusTcpClient')
     def test_limit_lock(self, mock_client):
         ''' Test that signals are dropped when the max locks is reached '''
         blk = ModbusTCP()
@@ -234,7 +234,7 @@ class TestModbusTCP(NIOBlockTestCase):
         blk._check_exceptions(signal)
         self.assertFalse(hasattr(signal, 'exception_details'))
 
-    @patch('pymodbus3.client.sync.ModbusTcpClient')
+    @patch('pymodbus.client.sync.ModbusTcpClient')
     def test_host_and_port_from_signal(self, mock_client):
         ''' Test that host and port evaluate using the incoming signal '''
         blk = ModbusTCP()

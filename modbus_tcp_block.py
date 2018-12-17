@@ -1,5 +1,5 @@
 import logging
-import pymodbus3.client.sync
+import pymodbus.client.sync
 from enum import Enum
 from time import sleep
 
@@ -53,8 +53,8 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
 
     def configure(self, context):
         super().configure(context)
-        # We don't need pymodbus3 to log for us. The block will handle that.
-        logging.getLogger('pymodbus3').setLevel(logging.CRITICAL)
+        # We don't need pymodbus to log for us. The block will handle that.
+        logging.getLogger('pymodbus').setLevel(logging.CRITICAL)
         # Make sure host is able to evaluate without a signal before connecting
         try:
             host = self.host()
@@ -122,7 +122,7 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
 
     def _connect_to_host(self, host, port):
         self.logger.debug('Connecting to modbus host: {}'.format(host))
-        self._clients['{}:{}'.format(host,port)] = pymodbus3.client.sync.ModbusTcpClient(host, port=port)
+        self._clients['{}:{}'.format(host,port)] = pymodbus.client.sync.ModbusTcpClient(host, port=port)
         self.logger.debug(
             'Succesfully connected to modbus host: {}'.format(host))
 

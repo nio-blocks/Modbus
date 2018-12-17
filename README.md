@@ -28,7 +28,7 @@ None
 Dependencies
 ------------
 -   [minimalmodbus](https://pypi.python.org/pypi/MinimalModbus)
--   [pymodbus3](https://pypi.python.org/pypi/pymodbus3/1.0.0)
+-   [pymodbus](https://pypi.org/project/pymodbus/1.3.1/)
 
 ***
 
