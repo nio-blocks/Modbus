@@ -6,7 +6,7 @@ from time import sleep
 from nio.block.base import Block
 from nio.block.mixins.retry.retry import Retry
 from nio.signal.base import Signal
-from nio.properties import StringProperty, IntProperty, \
+from nio.properties import StringProperty, IntProperty, FloatProperty, \
     Property, VersionProperty, SelectProperty, PropertyHolder, ObjectProperty
 
 
@@ -26,7 +26,6 @@ class PortConfig(PropertyHolder):
     parity = StringProperty(title='Parity (N, E, O)', default='N', order=23)
     bytesize = IntProperty(title='Byte Size', default=8, order=22)
     stopbits = IntProperty(title='Stop Bits', default=1, order=24)
-    timeout = Property(title='Timeout', default='0.05', order=25)
     port = StringProperty(title='Serial Port',
                           default='/dev/ttyUSB0',
                           order=20)
@@ -39,6 +38,7 @@ class ModbusRTU(Retry, Block):
     Parameters:
         slave_address (str): Slave address of modbus device.
         port (str): Serial port modbus device is connected to.
+        timeout (float): Seconds to wait for a response before failing.
     """
 
     version = VersionProperty("0.1.2")
@@ -56,6 +56,8 @@ class ModbusRTU(Retry, Block):
                                  title="Serial Port Setup",
                                  default=PortConfig(),
                                  advanced=True)
+    timeout = FloatProperty(title='Timeout', default='0.05', advanced=True)
+
 
     def __init__(self):
         super().__init__()
@@ -97,7 +99,7 @@ class ModbusRTU(Retry, Block):
         minimalmodbus.PARITY = self.port_config().parity()
         minimalmodbus.BYTESIZE = self.port_config().bytesize()
         minimalmodbus.STOPBITS = self.port_config().stopbits()
-        minimalmodbus.TIMEOUT = float(self.port_config().timeout())
+        minimalmodbus.TIMEOUT = float(self.timeout())
         self._client = minimalmodbus.Instrument(self.port_config().port(),
                                                 self.slave_address())
         self.logger.debug(self._client)
