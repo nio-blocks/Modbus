@@ -50,9 +50,6 @@ class ModbusRTU(Retry, Block):
     count = IntProperty(title='Number of coils/registers to read',
                         default=1)
     value = Property(title='Write Value(s)', default='{{ True }}')
-    retry = IntProperty(title='Number of Retries before Error',
-                        default=10,
-                        visible=False)
     port_config = ObjectProperty(
         PortConfig, title="Serial Port Setup", default=PortConfig())
 
