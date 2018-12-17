@@ -5,7 +5,7 @@ from time import sleep
 
 from nio.block.base import Block
 from nio.properties import IntProperty, Property, VersionProperty, \
-    SelectProperty
+    SelectProperty, FloatProperty
 from nio.block.mixins.limit_lock.limit_lock import LimitLock
 from nio.block.mixins.retry.retry import Retry
 from nio.block.mixins.enrich.enrich_signals import EnrichSignals
@@ -29,6 +29,7 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
     Parameters:
         host (str): The host to connect to.
         port (int): The modbus port to connect to.
+        timeout (float): Seconds to wait for a response before failing.
     """
 
     version = VersionProperty("0.2.0")
@@ -42,6 +43,7 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
     count = IntProperty(title='Number of coils/registers to read',
                         default=1)
     unit_id = IntProperty(title='Unit ID', default=1)
+    timeout = FloatProperty(title='Timeout', default=1, advanced=True)
 
     def __init__(self):
         super().__init__()
@@ -118,7 +120,10 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
 
     def _connect_to_host(self, host, port):
         self.logger.debug('Connecting to modbus host: {}'.format(host))
-        self._clients['{}:{}'.format(host,port)] = pymodbus.client.sync.ModbusTcpClient(host, port=port)
+        client = pymodbus.client.sync.ModbusTcpClient(host,
+                                                      port=port,
+                                                      timeout=self.timeout())
+        self._clients['{}:{}'.format(host,port)] = client
         self.logger.debug(
             'Succesfully connected to modbus host: {}'.format(host))
 

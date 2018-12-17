@@ -35,7 +35,7 @@ class TestModbusTCP(NIOBlockTestCase):
         ''' Test that read_coils is called with default configuration '''
         blk = ModbusTCP()
         self.configure_block(blk, {})
-        self.assertEqual(mock_client.call_count, 1)
+        mock_client.assert_called_once_with('127.0.0.1', port=502, timeout=1)
         # Simulate some response from the modbus read
         blk._client(blk.host(),blk.port()).read_coils.return_value = SampleResponse()
         blk.start()
@@ -47,6 +47,15 @@ class TestModbusTCP(NIOBlockTestCase):
         self.assertEqual(
             self.last_notified[DEFAULT_TERMINAL][0].value, 'default')
         blk.stop()
+
+    @patch('pymodbus.client.sync.ModbusTcpClient')
+    def test_timeout(self, mock_client):
+        ''' Test that client is instantiated with configured value '''
+        blk = ModbusTCP()
+        self.configure_block(blk, {'timeout': 3.14})
+        mock_client.assert_called_once_with('127.0.0.1',
+                                            port=502,
+                                            timeout=3.14)
 
     @patch('pymodbus.client.sync.ModbusTcpClient')
     def test_enrich_signals_mixin(self, mock_client):
