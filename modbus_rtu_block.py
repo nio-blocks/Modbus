@@ -22,12 +22,14 @@ class FunctionName(Enum):
 
 
 class PortConfig(PropertyHolder):
-    baudrate = IntProperty(title='Baud Rate', default=19200)
-    parity = StringProperty(title='Parity (N, E, O)', default='N')
-    bytesize = IntProperty(title='Byte Size', default=8)
-    stopbits = IntProperty(title='Stop Bits', default=1)
-    timeout = Property(title='Timeout', default='0.05')
-    port = StringProperty(title='Serial Port', default='/dev/ttyUSB0')
+    baudrate = IntProperty(title='Baud Rate', default=19200, order=21)
+    parity = StringProperty(title='Parity (N, E, O)', default='N', order=23)
+    bytesize = IntProperty(title='Byte Size', default=8, order=22)
+    stopbits = IntProperty(title='Stop Bits', default=1, order=24)
+    timeout = Property(title='Timeout', default='0.05', order=25)
+    port = StringProperty(title='Serial Port',
+                          default='/dev/ttyUSB0',
+                          order=20)
 
 
 class ModbusRTU(Retry, Block):
