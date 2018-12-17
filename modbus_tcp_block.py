@@ -39,9 +39,6 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
                                    default=FunctionName.read_coils)
     address = IntProperty(title='Starting Address', default=0)
     value = Property(title='Write Value(s)', default='{{ True }}')
-    retry = IntProperty(title='Number of Retries before Error',
-                        default=10,
-                        visible=False)
     count = IntProperty(title='Number of coils/registers to read',
                         default=1)
     unit_id = IntProperty(title='Unit ID', default=1)
@@ -49,7 +46,6 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
     def __init__(self):
         super().__init__()
         self._clients = {}
-        self._retry_failed = False
 
     def configure(self, context):
         super().configure(context)
