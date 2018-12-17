@@ -4,7 +4,7 @@
     "categories": [
       "Hardware"
     ],
-    "tags": "",
+    "tags": "serial",
     "from_readme": "docs/modbus_rtu.md",
     "from_python": "modbus_rtu_block.ModbusRTU"
   },
@@ -13,8 +13,8 @@
     "categories": [
       "Hardware"
     ],
-    "tags": "".
-    "from_readme": "docs/modbus_tcp.md"
+    "tags": "",
+    "from_readme": "docs/modbus_tcp.md",
     "from_python": "modbus_tcp_block.ModbusTCP"
   }
 }
