@@ -40,18 +40,20 @@ class ModbusRTU(Retry, Block):
     """
 
     version = VersionProperty("0.1.2")
-    slave_address = IntProperty(title='Slave Address', default=1)
-    function_name = SelectProperty(
-        FunctionName,
-        title='Function Name',
-        default=FunctionName.read_input_registers
-    )
-    address = Property(title='Starting Address', default='0')
+    slave_address = IntProperty(title='Slave Address', default=1, order=10)
+    function_name = SelectProperty(FunctionName,
+                                   title='Function Name',
+                                   default=FunctionName.read_input_registers,
+                                   order=11)
+    address = Property(title='Starting Address', default='0', order=12)
     count = IntProperty(title='Number of coils/registers to read',
-                        default=1)
-    value = Property(title='Write Value(s)', default='{{ True }}')
-    port_config = ObjectProperty(
-        PortConfig, title="Serial Port Setup", default=PortConfig())
+                        default=1,
+                        order=13)
+    value = Property(title='Write Value(s)', default='{{ True }}', order=14)
+    port_config = ObjectProperty(PortConfig,
+                                 title="Serial Port Setup",
+                                 default=PortConfig(),
+                                 advanced=True)
 
     def __init__(self):
         super().__init__()
