@@ -12,7 +12,7 @@ Properties
 - **Number of coils/registers to read**: How many values to read in total, including the **Starting Address**. The outgoing signal will contain this many values in a list. Not used when writing values.
 - **Write Values(s)**: A list of values to write to the target device. Each value will be written to a consecutive register or coil starting from **Starting Address**. The number of values to write is the length of the list. Not used when reading values.
 - **Timeout**: (Advanced) Seconds to wait for a response before failing and executing **Retry Options** configuration.
-- **Port Config**: (Advanced) Serial configurations here must be compatible with the target device. Thwe value of **Serial Port** depends on the host operating system, in Windows this is often something like `COM1`, and in POSIX-based systems `/dev/ttyS0` or similar.
+- **Port Config**: (Advanced) Serial configurations here must be compatible with the target device. The value of **Serial Port** depends on the host operating system, in Windows this is often something like `COM1`, and in POSIX-based systems `/dev/ttyS0` or similar.
 
 Commands
 --------
