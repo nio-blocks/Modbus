@@ -22,7 +22,7 @@ Attributes on outgoing signals include (but are not limited to) the following:
     - `register_address`: Starting address.
     - `function_code`: Modbus function code.
     - `value` (optional): Value on write.
-  - `values` (optional): List of int values when reading coils.
+  - `values` (optional): List of boolean values when reading coils.
   - `registers` (optional): list of 16-bit integer values when reading registers.
   - `exception_code` (int, optional): Error code when function call is invalid.
   - `exception_details` (str, optional): Error details when function call is invalid.
