@@ -32,7 +32,7 @@ class ModbusTCP(LimitLock, EnrichSignals, Retry, Block):
         timeout (float): Seconds to wait for a response before failing.
     """
 
-    version = VersionProperty("0.2.0", order=100)
+    version = VersionProperty('1.0.0', order=100)
     host = Property(title='Host', default='127.0.0.1', order=10)
     port = IntProperty(title='Port', default=502, order=11)
     function_name = SelectProperty(FunctionName,
