@@ -41,7 +41,7 @@ class ModbusRTU(Retry, Block):
         timeout (float): Seconds to wait for a response before failing.
     """
 
-    version = VersionProperty("0.1.2")
+    version = VersionProperty('1.0.0', order=100)
     slave_address = IntProperty(title='Slave Address', default=1, order=10)
     function_name = SelectProperty(FunctionName,
                                    title='Function Name',
